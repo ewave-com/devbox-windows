@@ -1,0 +1,16 @@
+server {
+    listen 80;
+    server_name {{host-name}};
+    access_log /var/log/nginx/access-{{host-name}}.log;
+    error_log /var/log/nginx/error-{{host-name}}.log;
+
+    location / {
+      proxy_read_timeout 600;
+      proxy_pass http://{{project_name}}_{{web_container_name}}:{{project_web_container_port}};
+
+      proxy_set_header      Host $host;
+      proxy_set_header      X-Real-IP $remote_addr;
+      proxy_set_header      X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+}

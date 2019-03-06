@@ -1,0 +1,30 @@
+# HTTPS project
+
+server {
+    listen 80;
+    server_name {{host-name}};
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443;
+    # SSL Section
+    ssl on;
+
+    ssl_certificate /etc/nginx/ssl/{{host-name}}.crt;
+    ssl_certificate_key /etc/nginx/ssl/{{host-name}}.key;
+
+    server_name {{host-name}};
+    access_log /var/log/nginx/access-https-{{host-name}}.log;
+    error_log /var/log/nginx/error-https-{{host-name}}.log;
+
+    location / {
+      proxy_read_timeout 600;
+      proxy_pass http://{{web_container_name}}:80;
+
+      proxy_set_header      Host $host;
+      proxy_set_header      X-Real-IP $remote_addr;
+      proxy_set_header      X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+

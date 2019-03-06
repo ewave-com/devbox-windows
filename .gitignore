@@ -31,7 +31,6 @@ source/.bashrc
 /sysdumps/*
 !/sysdumps/tmp
 
-/configs/nginx-reversproxy/default/conf.d/
 /configs/mysql/db/data/
 /configs/nginx/conf/website.conf
 /configs/nginx/magento/conf/website.conf
