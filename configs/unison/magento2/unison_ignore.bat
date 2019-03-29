@@ -22,8 +22,6 @@ rem Magento files not worth pulling locally.
 rem Other files not worth pushing to the container.
 @SET IGNORE=%IGNORE% -ignore "Path .git"
 @SET IGNORE=%IGNORE% -ignore "Path .git/*"
-@SET IGNORE=%IGNORE% -ignore "Path .gitignore"
-@SET IGNORE=%IGNORE% -ignore "Path .gitattributes"
 @SET IGNORE=%IGNORE% -ignore "Path .magento"
 @SET IGNORE=%IGNORE% -ignore "Path .env"
 @SET IGNORE=%IGNORE% -ignore "Path .env-files-mapping.json"
