@@ -6,7 +6,7 @@ $project = $args[0]
 [string]$sourceDirectory  = $MyInvocation.MyCommand.Path + "\..\..\..\..\projects\" + $project + "\docker-custom\*"
 [string]$destinationDirectory = $MyInvocation.MyCommand.Path + "\..\..\..\..\projects\" + $project + "\docker-up"
 
-if([System.IO.File]::Exists($sourceDirectory)){
+if(Test-Path $sourceDirectory){
     Copy-item -Force -Recurse -Verbose $sourceDirectory -Destination $destinationDirectory
 } else {
     echo "Custom docker-compose files are not detected ... Skipping this step ..."
