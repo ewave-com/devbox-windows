@@ -49,10 +49,6 @@ services:
            - web:${WEBSITE_HOST_NAME}
          volumes:
            - ./configs/varnish/${CONFIGS_PROVIDER_VARNISH}:/etc/varnish
-         environment:
-           - CACHE_SIZE 64m
-           - VARNISHD_PARAMS -p default_ttl=3600 -p default_grace=3600
-           - VCL_CONFIG /etc/varnish/default.vcl
          networks:
            - docker_projectsubnetwork
 
