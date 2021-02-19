@@ -2,6 +2,11 @@ FROM madebyewave/nginx-php7.2
 MAINTAINER Alex Korotysh < alex.lkorotysh@ewave.com >
 ENV PHP_EXTRA_CONFIGURE_ARGS="--enable-fpm --with-fpm-user=www-data --with-fpm-group=www-data"
 
+#Install php7.2-apcu
+RUN apt-get update
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 23E7166788B63E1E
+RUN apt-get install php7.2-apcu -y
+
 #install blackfire profiler
 ENV PHP_INI_DIR="/etc/php/7.2/fpm"
 RUN version=$(php -r "echo PHP_MAJOR_VERSION.PHP_MINOR_VERSION;") \
@@ -11,8 +16,8 @@ RUN version=$(php -r "echo PHP_MAJOR_VERSION.PHP_MINOR_VERSION;") \
     && printf "extension=blackfire.so\nblackfire.agent_socket=tcp://blackfire:8707\n" > $PHP_INI_DIR/conf.d/blackfire.ini
 
 # nginx: remove default config and enable our magento config
-RUN rm /etc/nginx/sites-available/default \
-    && rm /etc/nginx/sites-enabled/default 
+#RUN rm /etc/nginx/sites-available/default \
+#    && rm /etc/nginx/sites-enabled/default 
 
 # prepare directories & permissions for project
 RUN echo 'www-data:www-data' | chpasswd \

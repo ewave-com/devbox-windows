@@ -3,13 +3,13 @@ upstream fastcgi_backend {
 }
 
 map $http_host $mageruncode {
-    {{host-name}} default;
+    {{WEBSITE_HOST_NAME}} default;
 }
 
 server {
     listen 80 default_server;
-    server_name {{host-name}};
-	set $MAGE_ROOT {{document_root}};
+    server_name {{WEBSITE_HOST_NAME}} {{website_extra_host_names_nginx_list}};
+    set $MAGE_ROOT {{WEBSITE_APPLICATION_ROOT}};
     root $MAGE_ROOT;
     index index.html index.php;
 
