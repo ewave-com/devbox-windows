@@ -34,6 +34,8 @@ function start_project() {
     $domains = if (-not ${WEBSITE_EXTRA_HOST_NAMES}) { ${WEBSITE_HOST_NAME} } else { "${WEBSITE_HOST_NAME},${WEBSITE_EXTRA_HOST_NAMES}" }
     add_website_domain_to_hosts "$domains"
 
+    Remove-Item -Path "${project_up_dir}/project-stopped.flag" -Force -ErrorAction Ignore
+
     # Fix for reload network,because devbox-network contains all containers
     sleep 5
     show_success_message "Restarting nginx-reverse-proxy" "2"
@@ -66,6 +68,10 @@ function stop_current_project() {
     show_success_message "Removing domains from hosts file" "2"
     $domains = if (-not ${WEBSITE_EXTRA_HOST_NAMES}) { ${WEBSITE_HOST_NAME} } else { "${WEBSITE_HOST_NAME},${WEBSITE_EXTRA_HOST_NAMES}" }
     delete_website_domain_from_hosts "$domains"
+
+    if (-not (Test-Path "${project_up_dir}/project-stopped.flag" -PathType Leaf)) {
+        New-Item -Path "${project_up_dir}/project-stopped.flag" | Out-Null
+    }
 
     dotenv_unset_variables "$project_up_dir/.env"
 
@@ -169,7 +175,7 @@ function create_base_project_dirs() {
     }
 
     if (${ELASTICSEARCH_ENABLE} -eq "yes") {
-        New-Item -ItemType Directory -Path "${project_dir}/sysdumps/elasticsearch" -Force | Out-Null
+        New-Item -ItemType Directory -Path "${project_dir}/sysdumps/elasticsearch/data" -Force | Out-Null
     }
 
     # backward compatibility ont-time moves, will be removed later

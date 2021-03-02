@@ -19,6 +19,7 @@ function install_dependencies() {
         install_cygwin_docker_sync
         install_cygwin_unison
     }
+    install_git
     install_composer
     install_extra_packages
     register_devbox_scripts_globally
@@ -344,6 +345,24 @@ function install_cygwin_unison() {
     }
 }
 
+# Check and install unison
+function install_git() {
+    try {
+        $_is_git_installed = ((git --version))
+    } catch {
+        $_is_git_installed = $false
+    }
+
+    if (-not ${_is_git_installed}) {
+        show_success_message "Installing Git."
+
+        # install not the latest git version as for some reason the newest chocolatey package doesn't update PATH variable
+        Start-Process PowerShell -Wait -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass", "$env:ChocolateyInstall/bin/choco install -y git.install -version 2.30.1"
+
+        $env:devbox_env_path_updated = $true
+    }
+}
+
 # Check and install composer
 function install_composer() {
     try {
@@ -358,7 +377,27 @@ function install_composer() {
 
         $env:devbox_env_path_updated = $true
     } else {
-        composer install --quiet
+        try {
+            $pwd = (Get-Location)
+            if (-not (Test-Path "${devbox_root}/composer.lock")) {
+                show_success_message "Running initial composer install command."
+                cd ${devbox_root}; composer install --quiet; cd $pwd
+            } elseif ($composer_autoupdate -and (Get-ChildItem "${devbox_root}/composer.lock" | Where { $_.LastWriteTime -lt (Get-Date).AddDays(-7) } )){
+                show_success_message "Running composer update command to refresh packages. Last run is a week ago. Please wait a few seconds"
+                cd ${devbox_root}; composer update --quiet; cd $pwd
+            }
+        } catch {
+            # PHP 8.0+ Compatibility fix, the following error or similar might occur during composer command.
+            # PHP Fatal error:  Uncaught ArgumentCountError: array_merge() does not accept unknown named parameters in /usr/share/php/Composer/DependencyResolver/DefaultPolicy.php:84
+            # "composer selfupdate" is errored as well. So we need to completely reinstall composer.
+            show_warning_message "An error occurred during \"composer\" operation."
+            show_warning_message "This might be caused you are using PHP 8.0+ on the host system. We will try to update composer version to fix the errors."
+            Start-Process PowerShell -Wait -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass", "$env:ChocolateyInstall/bin/choco uninstall -y composer"
+            Start-Process PowerShell -Wait -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass", "$env:ChocolateyInstall/bin/choco install -y composer"
+            $env:devbox_env_path_updated = $true
+
+            cd $pwd
+        }
     }
 }
 

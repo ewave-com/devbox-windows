@@ -316,7 +316,7 @@ function start_background_health_checker($_config_file = "") {
 
     # Start process within the same tree, but after main shell execution is finished health-checker left running as a detached process
     # Processes called by [Start-Job] or [Invoke-Expression] are not detached processes and will be termnated together with the main programm
-    Start-Process PowerShell -WindowStyle Hidden -ArgumentList "-ExecutionPolicy Bypass", "${devbox_root}/tools/docker/docker-sync-health-checker.ps1", "${devbox_root}", "${_config_file}"
+    Start-Process PowerShell -WindowStyle Hidden -ArgumentList "-ExecutionPolicy Bypass", "${devbox_root}/tools/docker/docker-sync-health-checker.ps1", "${_config_file}"
 }
 
 # kill health-checker process

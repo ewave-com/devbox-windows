@@ -9,6 +9,8 @@ $host_user = $env:UserName
 
 $docker_compose_log_level = "ERROR"
 
+$composer_autoupdate = $true
+
 $os_type = "windows"
 
 # wsl is more stable and shows better perfomance of inode watching, but a bit slower in initial filesystem scanning (wsl fstat system calls - unix simulation)

@@ -57,6 +57,8 @@ function cleanup_project_docker_up_configs() {
     Remove-Item -Path "${project_up_dir}/docker-sync/" -Force -Recurse -ErrorAction Ignore
 
     Remove-Item -Path "${project_up_dir}/nginx-reverse-proxy/" -Force -Recurse -ErrorAction Ignore
+
+    Remove-Item -Path "${project_up_dir}/project-stopped.flag" -Force -ErrorAction Ignore
 }
 
 ############################ Public functions end ############################

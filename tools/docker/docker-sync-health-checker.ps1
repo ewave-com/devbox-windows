@@ -1,7 +1,8 @@
-$devbox_root = $args[0]
-$docker_sync_file = $args[1]
 Set-PSDebug -strict;
-#Set-PSDebug -strict -trace 1;
+
+$docker_sync_file = $args[0]
+
+$devbox_root = $((Split-Path -Parent $MyInvocation.MyCommand.Path) | Split-Path -Parent | Split-Path -Parent)
 
 if (-not ${devbox_root} -or ! (Test-Path $devbox_root -PathType Container) -or ! (${docker_sync_file}) -or ! (Test-Path $docker_sync_file -PathType Leaf)) {
     echo "Unable to initialize docker-sync-health-checker. Exit."
@@ -113,9 +114,8 @@ function handle_hanging_unison_proceses() {
     if(!$_cycle_possible_hanging_unison_pids) {
         if($global:hanging_unison_hashes) {
             show_success_message "No process found with high CPU utilization, clear unison reset list"
+            $global:hanging_unison_hashes=@();
         }
-        $global:hanging_unison_hashes=@();
-        $cycle_number = 0;
         return;
     }
 
@@ -158,6 +158,7 @@ function handle_hanging_unison_proceses() {
                 } else {
                     if (Get-WmiObject Win32_Process -Filter "ProcessId = ${_unison_pid}") {
                         show_warning_message "Killing PID '${_unison_pid}' as its CPU over the threshold '${cpu_percentage_threshold}' for '${max_cycles_before_kill}' cycles"
+                        # remove killed pid from the candidate list
                         $global:hanging_unison_hashes = $global:hanging_unison_hashes | Where-Object {$_ -notmatch "^${_unison_pid}:" }
                         Stop-Process ${_unison_pid}
                     }
@@ -167,6 +168,7 @@ function handle_hanging_unison_proceses() {
             }
         } else {
             show_success_message "CPU utilization normalized for PID '${_unison_pid}', reset not required"
+            # remove normalized pid from the candidate list
             $global:hanging_unison_hashes = $global:hanging_unison_hashes | Where-Object {$_ -notmatch "^${_unison_pid}:" }
         }
     }
