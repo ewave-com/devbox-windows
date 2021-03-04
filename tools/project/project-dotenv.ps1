@@ -45,8 +45,8 @@ function prepare_project_dotenv_file($_force = $false) {
     apply_backward_compatibility_transformations "${project_up_dir}/.env"
     merge_defaults "${project_up_dir}/.env"
     add_computed_params "${project_up_dir}/.env"
-    add_static_dir_paths_for_docker_sync "${project_up_dir}/.env"
     evaluate_expression_values "${project_up_dir}/.env"
+    add_static_dir_paths_for_docker_sync "${project_up_dir}/.env"
 
     $current_env_filepath = ""
 
@@ -196,6 +196,32 @@ function add_static_dir_paths_for_docker_sync($_env_filepath = "${project_up_dir
             $_composer_cache_dir = (get_wsl_path $_composer_cache_dir)
         }
         dotenv_set_param_value 'COMPOSER_CACHE_DIR' $_composer_cache_dir
+    }
+
+    # evaluate relative app path inside sources root to configure sync properly
+    if(-not (dotenv_get_param_value 'WEBSITE_SOURCES_ROOT')) {
+        if ( (dotenv_get_param_value 'WEBSITE_SOURCES_ROOT') -ne (dotenv_get_param_value 'WEBSITE_APPLICATION_ROOT') ) {
+            $_sources_root = (dotenv_get_param_value 'WEBSITE_SOURCES_ROOT')
+            $_app_root = (dotenv_get_param_value 'WEBSITE_APPLICATION_ROOT')
+            $_app_relative_path = (((${_app_root} -Replace "${_sources_root}", '') -Replace "^/", '') -Replace "/$", '')
+
+            if (${_app_relative_path}) {
+                dotenv_set_param_value 'APP_REL_PATH' "${_app_relative_path}/"
+            }
+        }
+    }
+
+    # evaluate relative node_modules path inside sources root to configure sync properly
+    if(-not (dotenv_get_param_value 'NODE_MODULES_REL_PATH')) {
+        if ((dotenv_get_param_value 'WEBSITE_NODE_MODULES_ROOT')) {
+            $_sources_root = (dotenv_get_param_value 'WEBSITE_SOURCES_ROOT')
+            $_node_modules_root = (dotenv_get_param_value 'WEBSITE_NODE_MODULES_ROOT')
+            $_node_modules_relative_path = (((${_node_modules_root} -Replace "${_sources_root}", '') -Replace "^/", '') -Replace "/$", '')
+
+            if (${_node_modules_relative_path}) {
+                dotenv_set_param_value 'NODE_MODULES_REL_PATH' "${_node_modules_relative_path}/"
+            }
+        }
     }
 }
 
