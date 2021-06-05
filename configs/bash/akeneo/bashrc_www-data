@@ -17,8 +17,8 @@ sudo chmod 777 /var/www
 # install git autocompletion
 if [ ! -f ~/.git-completion.bash ]; then
   git_version="$(git --version | sed 's/.*\ //')"
-  curl https://raw.githubusercontent.com/git/git/v${git_version}/contrib/completion/git-completion.bash -s -o ~/.git-completion.bash > /dev/null
-  sudo chmod ugo+x ~/.git-completion.bash
+  curl https://raw.githubusercontent.com/git/git/v${git_version}/contrib/completion/git-completion.bash --max-time 5 -s -o ~/.git-completion.bash > /dev/null
+  test -f ~/.git-completion.bash && sudo chmod ugo+x ~/.git-completion.bash
 fi
 test -f ~/.git-completion.bash && source ~/.git-completion.bash
 
@@ -73,6 +73,7 @@ fi
 alias platform-tools="php {{TOOLS_PROVIDER_REMOTE_PATH}}/{{TOOLS_PROVIDER_ENTRYPOINT}}"
 
 # Common application aliases
+alias ll="ls -la"
 alias coperm="platform-tools core:setup:permissions"
 
 #Akeneo aliases

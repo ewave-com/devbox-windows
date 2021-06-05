@@ -35,6 +35,13 @@ Switch -exact (${_selected_down_type}) {
         stop_devbox_project ${_selected_project}
         break
     }
+    "down_one" {
+        if (-not ${_selected_project}) {
+            $_selected_project = (select_project_menu)
+        }
+        down_devbox_project ${_selected_project}
+        break
+    }
     "down_and_clean_one" {
         if (-not ${_selected_project}) {
             $_selected_project = (select_project_menu)
@@ -44,6 +51,10 @@ Switch -exact (${_selected_down_type}) {
     }
     "stop_all" {
         stop_devbox_all
+        break
+    }
+    "down_all" {
+        down_devbox_all
         break
     }
     "down_and_clean_all" {

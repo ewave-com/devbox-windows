@@ -7,6 +7,8 @@
 $env:devbox_env_path_updated = $false
 
 function install_dependencies() {
+    show_success_message "Validating software dependencies"
+
     install_chocolatey
     install_docker
 
@@ -25,12 +27,14 @@ function install_dependencies() {
     register_devbox_scripts_globally
 
     if ($env:devbox_env_path_updated -eq $true) {
+        show_warning_message "###########################################################################################"
         show_success_message "Installed packages updated your PATH system variable."
-        show_warning_message "!!! To apply changes please close this window and start again usin new console window !!!."
-        $env:devbox_env_path_updated = $null
+        show_warning_message "!!! To apply changes please close this window and start again using new console window !!!."
+        show_warning_message "###########################################################################################"
+        unset_flag_terminal_restart_required
         exit
     }
-    $env:devbox_env_path_updated = $null
+    unset_flag_terminal_restart_required
 }
 
 ############################ Public functions end ############################
@@ -44,7 +48,7 @@ function install_chocolatey() {
 
         add_directory_to_env_path "$env:ALLUSERSPROFILE\chocolatey\bin"
 
-        $env:devbox_env_path_updated = $true
+        set_flag_terminal_restart_required
     }
 }
 
@@ -215,7 +219,7 @@ function install_wsl() {
             Add-Content -Path $wsl_conf_path -Value 'appendWindowsPath=false # append Windows path to $PATH variable; default is true'
             wsl -d $devbox_wsl_distro_name chmod 644 /etc/wsl.conf
 
-            #             set bitmask Flags 5 instead of 7 to deny wsl load windows PATH, # admin perms not needed for some reason
+            # set bitmask Flags 5 instead of 7 to deny wsl load windows PATH, # admin perms not needed for some reason
             Get-ChildItem -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss | Where-Object { (Get-ItemProperty "Registry::$_" -Name DistributionName).DistributionName -eq "devbox-distro" } | ForEach-Object { Set-ItemProperty "Registry::$_" -Name Flags -Value 5 }
         }
 
@@ -238,11 +242,20 @@ function install_wsl_docker_sync() {
     }
 
     if (-not (Test-Path "$wsl_distro_dir/rootfs/usr/local/bin/docker-sync")) {
-        wsl -d ${devbox_wsl_distro_name} gem install docker-sync | Out-Null
+        wsl -d ${devbox_wsl_distro_name} gem install docker-sync -v 0.6 | Out-Null
 
         # Replace one of docker-sync source files to avoid sync by starting and speedup project 'hot' start, initial precopy into clean volume still work by default
         $docker_sync_lib_sources_dir = (wsl -d $devbox_wsl_distro_name bash --login -c 'dirname $(gem which docker-sync)')
-        Copy-Item "${devbox_root}/tools/bin/docker-sync/lib/docker-sync/sync_strategy/unison.rb" -Destination "$wsl_distro_dir/rootfs${docker_sync_lib_sources_dir}/docker-sync/sync_strategy/unison.rb" -Force
+        if (-not $docker_sync_lib_sources_dir) {
+            show_error_message "Docker-sync package was not installed. Please try to remove Cygwin and try again or contact DevBox developers."
+            exit
+        }
+
+        $_target_chsum = (Get-FileHash -Algorithm MD5 "$wsl_distro_dir/rootfs${docker_sync_lib_sources_dir}/docker-sync/sync_strategy/unison.rb").Hash
+        $_source_chsum = (Get-FileHash -Algorithm MD5 "${devbox_root}/tools/bin/docker-sync/lib/docker-sync/sync_strategy/unison.rb").Hash
+        if ($_target_chsum -ne $_source_chsum) {
+            Copy-Item "${devbox_root}/tools/bin/docker-sync/lib/docker-sync/sync_strategy/unison.rb" -Destination "$wsl_distro_dir/rootfs${docker_sync_lib_sources_dir}/docker-sync/sync_strategy/unison.rb" -Force
+        }
 
         # reset all windows paths as not required, besides /mnt/ pathes cause annoying warning of ruby shell about too open permission of such paths
         wsl -d $devbox_wsl_distro_name bash --login -c "echo '' >> ~/.bashrc && echo 'export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin' >> ~/.bashrc"
@@ -250,13 +263,13 @@ function install_wsl_docker_sync() {
 }
 
 function install_wsl_unison() {
-    if (-not (Test-Path "$wsl_distro_dir/rootfs/usr/local/bin/unison")) {
+    if (-not (Test-Path "${wsl_distro_dir}/rootfs/usr/local/bin/unison")) {
         # map linux binary of unison as winos unison binary work not very well with both types of paths: winos and unix
         $wsl_path_unison = (get_wsl_path (Resolve-Path "$devbox_root/tools/bin/wsl/unison"))
         wsl -d ${devbox_wsl_distro_name} ln -nsf "${wsl_path_unison}" /usr/local/bin/unison
     }
 
-    if (-not (Test-Path "$wsl_distro_dir/rootfs/usr/local/bin/unison-fsmonitor")) {
+    if (-not (Test-Path "${wsl_distro_dir}/rootfs/usr/local/bin/unison-fsmonitor")) {
         # map linux binary of unison as winos unison binary work not very well with both types of paths: winos and unix
         $wsl_path_unison = (get_wsl_path (Resolve-Path "$devbox_root/tools/bin/wsl/unison-fsmonitor"))
         wsl -d ${devbox_wsl_distro_name} ln -nsf "${wsl_path_unison}" /usr/local/bin/unison-fsmonitor
@@ -268,13 +281,22 @@ function install_cygwin() {
     if (-not (Test-Path "${cygwin_dir}/bin" -PathType Container) -or -not (Test-Path "${cygwin_dir}/bin/ruby.exe" -PathType Leaf) -or -not (Test-Path "${cygwin_dir}/bin/gem" -PathType Leaf)) {
         show_success_message "Downloading Cygwin program and installing ruby gems."
 
-        if (-not (Test-Path "${download_dir}/cygwin_setup.exe" -PathType Leaf)) {
-            $download_dir = (New-Object -ComObject Shell.Application).NameSpace('shell:Downloads').Self.Path
-            (new-object System.Net.WebClient).DownloadFile("https://cygwin.com/setup-x86_64.exe", "${download_dir}/cygwin_setup.exe")
+        if ((Test-Path ${cygwin_dir} -PathType Container)) {
+            show_warning_message "Existing Cygwin installation found at path '${cygwin_dir}'. Backing it up to '${cygwin_dir}.bak' and reinstalling"
+            if ((Test-Path "${cygwin_dir}.bak" -PathType Container)) {
+                Remove-Item "${cygwin_dir}.bak" -Recurse -Force | Out-Null
+            }
+            Move-Item -Path ${cygwin_dir} -Destination "${cygwin_dir}.bak" -Force | Out-Null
+        }
+
+        $download_dir = (New-Object -ComObject Shell.Application).NameSpace('shell:Downloads').Self.Path
+        if (-not (Test-Path "${download_dir}/cygwin_setup.exe")) {
+            (new-object System.Net.WebClient).DownloadFile("https://cygwin.com/setup-x86_64.exe", "${download_dir}\cygwin_setup.exe")
         }
 
         # install cygwin with ruby packages required for docker-sync
-        Start-Process -Wait -FilePath "${download_dir}/cygwin_setup.exe" -ArgumentList "--quiet-mode --no-admin --root=${cygwin_dir} --packages='openssl,ruby,ruby-devel,rubygems'"
+        # see https://www.cygwin.com/faq/faq.html#faq.setup.cli
+        Start-Process -Wait -FilePath "${download_dir}/cygwin_setup.exe" -ArgumentList "--quiet-mode --no-admin --wait --root=${cygwin_dir} --packages='openssl,ruby,ruby-devel,rubygems' --site=http://mirrors.kernel.org/sourceware/cygwin/ --local-package-dir=$download_dir/cygwin-installation"
 
         if (-not (Test-Path "${cygwin_dir}\home\$env:UserName\.bash_profile")) {
             New-Item -ItemType Directory -Path "${cygwin_dir}\home\$env:UserName" -Force | Out-Null
@@ -282,7 +304,7 @@ function install_cygwin() {
         }
     }
 
-    if (-not (Test-Path "C:\cygwin64" -PathType Container)) {
+    if (-not (Test-Path ${cygwin_dir} -PathType Container)) {
         show_error_message "Unable to install cygwin".
         exit
     }
@@ -308,11 +330,20 @@ PATH="$PATH:/cygdrive/c/Program Files/Docker/Docker/resources/bin"
         [IO.File]::WriteAllText("${cygwin_dir}/home/$env:UserName/.bash_profile", $text)
 
         # install docker-sync as ruby gem inside cygwin
-        Start-Process -Wait -NoNewWindow -FilePath "${cygwin_dir}\bin\bash.exe" -ArgumentList "--login -c 'gem install docker-sync'"
+        Start-Process -Wait -NoNewWindow -FilePath "${cygwin_dir}\bin\bash.exe" -ArgumentList "--login -c 'gem install docker-sync -v 0.6'"
 
         # Replace one of docker-sync source files to avoid sync by starting and speedup project 'hot' start, initial precopy into clean volume still work by default
         $docker_sync_lib_sources_dir = (& "${cygwin_dir}/bin/bash.exe" --login -c 'dirname $(gem which docker-sync)')
-        Copy-Item "${devbox_root}/tools/bin/docker-sync/lib/docker-sync/sync_strategy/unison.rb" -Destination "${cygwin_dir}${docker_sync_lib_sources_dir}/docker-sync/sync_strategy/unison.rb" -Force
+        if (-not $docker_sync_lib_sources_dir) {
+            show_error_message "Docker-sync package was not installed. Please try to remove Cygwin and try again or contact DevBox developers."
+            exit
+        }
+
+        $_target_chsum = (Get-FileHash -Algorithm MD5 "${cygwin_dir}${docker_sync_lib_sources_dir}/docker-sync/sync_strategy/unison.rb").Hash
+        $_source_chsum = (Get-FileHash -Algorithm MD5 "${devbox_root}/tools/bin/docker-sync/lib/docker-sync/sync_strategy/unison.rb").Hash
+        if ($_target_chsum -ne $_source_chsum) {
+            Copy-Item "${devbox_root}/tools/bin/docker-sync/lib/docker-sync/sync_strategy/unison.rb" -Destination "${cygwin_dir}${docker_sync_lib_sources_dir}/docker-sync/sync_strategy/unison.rb" -Force
+        }
 
         # create symlink of missing '/etc/localtime' as docker-sync uses system time for comparisons
         & "${cygwin_dir}\bin\bash.exe" --login -c 'ln -nsf "/usr/share/zoneinfo/${TZ}" /etc/localtime'
@@ -359,23 +390,33 @@ function install_git() {
         # install not the latest git version as for some reason the newest chocolatey package doesn't update PATH variable
         Start-Process PowerShell -Wait -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass", "$env:ChocolateyInstall/bin/choco install -y git.install -version 2.30.1"
 
-        $env:devbox_env_path_updated = $true
+        set_flag_terminal_restart_required
     }
 }
 
 # Check and install composer
 function install_composer() {
     try {
-        # Composer version seems to be more logical, but no-plugins command is faster to ensure composer is presented in general
-        $_is_composer_installed = ((composer --no-plugins))
+        # Composer version with no-plugins is faster to ensure composer is presented in general
+        $_composer_version = ((composer --no-plugins --version) | Select-String -Pattern "^Composer version ([0-9.]+) " | ForEach-Object -MemberName Matches | ForEach-Object { $_.Groups[1].Value } )
     } catch {
-        $_is_composer_installed = $false
+        $_composer_version = $false
     }
 
-    if (-not $_is_composer_installed) {
+    if ($_composer_version) {
+        $_major_version = $_composer_version.SubString(0,1);
+        # https://nono.ma/github-oauth-token-for-github-com-contains-invalid-characters-on-composer-install
+        if (($_major_version -eq "1" -and [System.Version]$_composer_version -lt [System.Version]"1.10.21") -or ($_major_version -eq "2" -and [System.Version]$_composer_version -lt [System.Version]"2.0.12")) {
+            show_success_message "Your composer will be updated to the latest version"
+            Start-Process PowerShell -Wait -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass", "$env:ChocolateyInstall/bin/choco uninstall -y composer"
+            $_composer_version = $null
+        }
+    }
+
+    if (-not $_composer_version) {
         Start-Process PowerShell -Wait -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass", "$env:ChocolateyInstall/bin/choco install -y composer"
 
-        $env:devbox_env_path_updated = $true
+        set_flag_terminal_restart_required
     } else {
         try {
             $pwd = (Get-Location)
@@ -383,7 +424,7 @@ function install_composer() {
                 show_success_message "Running initial composer install command."
                 cd ${devbox_root}; composer install --quiet; cd $pwd
             } elseif ($composer_autoupdate -and (Get-ChildItem "${devbox_root}/composer.lock" | Where { $_.LastWriteTime -lt (Get-Date).AddDays(-7) } )){
-                show_success_message "Running composer update command to refresh packages. Last run is a week ago. Please wait a few seconds"
+                show_success_message "Running composer update command to refresh packages. Last run was performed a week ago. Please wait a few seconds"
                 cd ${devbox_root}; composer update --quiet; cd $pwd
             }
         } catch {
@@ -394,7 +435,7 @@ function install_composer() {
             show_warning_message "This might be caused you are using PHP 8.0+ on the host system. We will try to update composer version to fix the errors."
             Start-Process PowerShell -Wait -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass", "$env:ChocolateyInstall/bin/choco uninstall -y composer"
             Start-Process PowerShell -Wait -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass", "$env:ChocolateyInstall/bin/choco install -y composer"
-            $env:devbox_env_path_updated = $true
+            set_flag_terminal_restart_required
 
             cd $pwd
         }
@@ -403,6 +444,13 @@ function install_composer() {
 
 function install_extra_packages() {
     # You can install additional packages here
+}
+
+function register_devbox_scripts_globally() {
+    $devbox_root_envpath = (${devbox_root} -Replace '/', '\')
+    if (-not ($env:Path | Select-String -Pattern "$([regex]::Escape(${devbox_root_envpath}));")) {
+        add_directory_to_env_path "${devbox_root_envpath}"
+    }
 }
 
 function add_directory_to_env_path($_bin_dir) {
@@ -417,14 +465,15 @@ function add_directory_to_env_path($_bin_dir) {
     $current_env_path = ([Environment]::getEnvironmentVariable('PATH', 'User'));
     [Environment]::SetEnvironmentVariable('PATH', "${current_env_path};${_bin_dir};", 'User')
 
+    set_flag_terminal_restart_required
+}
+
+function set_flag_terminal_restart_required() {
     $env:devbox_env_path_updated = $true
 }
 
-function register_devbox_scripts_globally() {
-    $devbox_root_envpath = (${devbox_root} -Replace '/', '\')
-    if (-not ($env:Path | Select-String -Pattern "$([regex]::Escape(${devbox_root_envpath}));")) {
-        add_directory_to_env_path "${devbox_root_envpath}"
-    }
+function unset_flag_terminal_restart_required() {
+    $env:devbox_env_path_updated = $null
 }
 
 ############################ Local functions end ############################

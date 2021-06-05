@@ -1,5 +1,6 @@
 . require_once "${devbox_root}/tools/system/constants.ps1"
 . require_once "${devbox_root}/tools/system/output.ps1"
+. require_once "${devbox_root}/tools/project/project-state.ps1"
 
 ############################ Public functions ############################
 
@@ -27,7 +28,7 @@ function is_project_started($_selected_project = "", $_fast_check = $false) {
         return $false;
     }
 
-    if (Test-Path "${_project_up_dir}/project-stopped.flag" -PathType Leaf) {
+    if (-not (is_state_file_exists "${_project_up_dir}") -or ((get_state_last_project_status "${_project_up_dir}") -ne "started") ) {
         return $false;
     }
 

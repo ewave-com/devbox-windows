@@ -33,22 +33,22 @@ function copy_path($_from_path = "", $_to_path = "") {
 }
 
 function copy_path_with_project_fallback($_source_path = "", $_target_path = "", $_strict_mode = $true) {
-    if (Test-Path "${project_dir}/${_source_path}" -PathType Any) {
-        copy_path "${project_dir}/${_source_path}" "${_target_path}"
-        return
-    }
+    $_is_copied=$false
 
     if (Test-Path "${devbox_root}/${_source_path}" -PathType Any) {
         copy_path "${devbox_root}/${_source_path}" "${_target_path}"
-        return
+        $_is_copied=$true
     }
-    else {
-        if ($_strict_mode) {
-            show_error_message "Unable to copy file: source path '${devbox_root}/${_source_path}' does not exist! Alternative fallback path also not found: '${project_dir}/${_source_path}'"
-        }
-        else {
-            return
-        }
+
+    if (Test-Path "${project_dir}/${_source_path}" -PathType Any) {
+        copy_path "${project_dir}/${_source_path}" "${_target_path}"
+        $_is_copied=$true
+    }
+
+    if (-not $_is_copied -and $_strict_mode) {
+        show_error_message "Unable to copy file: source path '${devbox_root}/${_source_path}' does not exist! Alternative fallback path also not found: '${project_dir}/${_source_path}'"
+    } else {
+        return
     }
 }
 

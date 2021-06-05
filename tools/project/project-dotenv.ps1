@@ -116,6 +116,36 @@ function merge_defaults($_env_filepath = "${project_up_dir}/.env") {
     }
 }
 
+# check if dynamic ports are available to be exposed, used on simplified start with existing .env
+function ensure_exposed_container_ports_are_available($_env_filepath = "${project_up_dir}/.env") {
+    $current_env_filepath = "${_env_filepath}"
+
+    # ensure mysql external port is available to be exposed or compute a free one
+    $_mysql_enable = (dotenv_get_param_value 'MYSQL_ENABLE')
+    if ("${_mysql_enable}" -eq "yes") {
+        $_configured_mysql_port = $( dotenv_get_param_value 'CONTAINER_MYSQL_PORT' )
+        if ($_configured_mysql_port) {
+            ensure_mysql_port_is_available ${_configured_mysql_port}
+        }
+    }
+
+    # ensure elasticsearch external port is available to be exposed or compute a free one
+    $_es_enable = $( dotenv_get_param_value 'ELASTICSEARCH_ENABLE' )
+    if ("${_es_enable}" -eq "yes") {
+        $_configured_es_port = (dotenv_get_param_value 'CONTAINER_ELASTICSEARCH_PORT')
+        if ($_configured_es_port) {
+            ensure_elasticsearch_port_is_available ${_configured_es_port}
+        }
+    }
+
+    $_configured_ssh_port = (dotenv_get_param_value 'CONTAINER_WEB_SSH_PORT')
+    if ($_configured_ssh_port) {
+        ensure_website_ssh_port_is_available ${_configured_ssh_port}
+    }
+
+    $current_env_filepath = ""
+}
+
 # add comupted params like dynamic ports or hosts
 function add_computed_params($_env_filepath = "${project_up_dir}/.env") {
     # ensure mysql external port is available to be exposed or compute a free one
@@ -159,6 +189,20 @@ function add_computed_params($_env_filepath = "${project_up_dir}/.env") {
     if (-not ${_configured_xdebug_host}) {
         $_computed_xdebug_host = "host.docker.internal"
         dotenv_set_param_value 'WEBSITE_PHP_XDEBUG_HOST' "${_computed_xdebug_host}"
+    }
+
+    # set OS mysql docker-sync type if 'default' chosen
+    $_mysql_docker_sync_provider = (dotenv_get_param_value 'CONFIGS_PROVIDER_MYSQL_DOCKER_SYNC')
+    if (${_mysql_docker_sync_provider} -eq "default") {
+        $_mysql_docker_sync_provider = "unison"
+        dotenv_set_param_value 'CONFIGS_PROVIDER_MYSQL_DOCKER_SYNC' "${_mysql_docker_sync_provider}"
+    }
+
+    # set OS elasticsearch docker-sync type if 'default' chosen
+    $_es_docker_sync_provider = (dotenv_get_param_value 'CONFIGS_PROVIDER_ELASTICSEARCH_DOCKER_SYNC')
+    if (${_es_docker_sync_provider} -eq "default") {
+        $_es_docker_sync_provider = "unison"
+        dotenv_set_param_value 'CONFIGS_PROVIDER_ELASTICSEARCH_DOCKER_SYNC' "${_es_docker_sync_provider}"
     }
 }
 

@@ -53,9 +53,9 @@ function select_menu_item($_options_string, $_options_delimiter = ",") {
         }
 
         # cursor up, left: previous item
-        if ($keychar -eq 'w' -or $keychar -eq 'a' -or $keycode -eq 38 -or $keycode -eq 37) { if ($cursor -gt 0) { $cursor-- } }
+        if ($keychar -eq 'w' -or $keychar -eq 'a' -or $keycode -eq 38 -or $keycode -eq 37) { if ($cursor -gt 0) { $cursor-- } else { $cursor = ($_options.Length - 1) } }
         # cursor down, right: next item
-        if ($keychar -eq 's' -or $keychar -eq 'd' -or $keycode -eq 40 -or $keycode -eq 39) { if ($cursor -lt ($_options.Length - 1)) { $cursor++ } }
+        if ($keychar -eq 's' -or $keychar -eq 'd' -or $keycode -eq 40 -or $keycode -eq 39) { if ($cursor -lt ($_options.Length - 1)) { $cursor++ } else { $cursor = 0 } }
         # Home, PgUp keys: first item
         if ($keycode -eq 36 -or $keycode -eq 33) { $cursor = 0 }
         # End, PgDown keys: last item

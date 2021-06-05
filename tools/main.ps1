@@ -68,15 +68,26 @@ function stop_devbox_project($_selected_project = "") {
     show_success_message "Project '${_selected_project}' was successfully stopped" "1"
 }
 
+function down_devbox_project($_selected_project = "") {
+    show_success_message "Downing and cleaning DevBox project '${_selected_project}'" "1"
+
+    # initialize basic project variables and directories
+    init_selected_project "${_selected_project}"
+
+    down_current_project
+
+    show_success_message "Project '${_selected_project}' was successfully downed and cleaned" "1"
+}
+
 function down_and_clean_devbox_project($_selected_project = "") {
-    show_success_message "Stopping and cleaning DevBox project '${_selected_project}'" "1"
+    show_success_message "Downing and cleaning DevBox project '${_selected_project}'" "1"
 
     # initialize basic project variables and directories
     init_selected_project "${_selected_project}"
 
     down_and_clean_current_project
 
-    show_success_message "Project '${_selected_project}' was successfully stopped and cleaned" "1"
+    show_success_message "Project '${_selected_project}' was successfully downed and cleaned" "1"
 }
 
 function stop_devbox_all() {
@@ -95,8 +106,24 @@ function stop_devbox_all() {
     show_success_message "DevBox was successfully stopped" "1"
 }
 
+function down_devbox_all() {
+    show_success_message "Downing and cleaning all DevBox projects" "1"
+
+    # Stop all project containers
+    foreach ($_selected_project in ((get_project_list).Split(','))) {
+        if (is_project_configured ${_selected_project}) {
+            down_devbox_project "$_selected_project"
+        }
+    }
+
+    show_success_message "Stopping common infrastructure." "1"
+    stop_infrastructure "${dotenv_infra_filepath}"
+
+    show_success_message "DevBox was successfully downed and cleaned" "1"
+}
+
 function down_and_clean_devbox_all() {
-    show_success_message "Stopping and cleaning all DevBox projects" "1"
+    show_success_message "Down and cleaning all DevBox projects" "1"
 
     # Stop all project containers
     foreach ($_selected_project in ((get_project_list).Split(','))) {
@@ -105,10 +132,10 @@ function down_and_clean_devbox_all() {
         }
     }
 
-    show_success_message "Downing common infrastructure." "1"
+    show_success_message "Stopping common infrastructure." "1"
     stop_infrastructure "${dotenv_infra_filepath}"
 
-    show_success_message "DevBox was successfully stopped and cleaned" "1"
+    show_success_message "DevBox was successfully downed and cleaned" "1"
 }
 
 function docker_destroy() {

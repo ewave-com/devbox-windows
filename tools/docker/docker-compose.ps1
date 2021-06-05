@@ -61,7 +61,7 @@ function docker_compose_stop($_compose_filepath = "", $_env_filepath = "${projec
     }
 }
 
-function docker_compose_down($_compose_filepath = "", $_env_filepath = "${project_up_dir}/.env", $_log_level = ${docker_compose_log_level}) {
+function docker_compose_down($_compose_filepath = "", $_env_filepath = "${project_up_dir}/.env", $_clean_volumes = $false, $_log_level = ${docker_compose_log_level}) {
     show_success_message "Downing docker containers for compose config '$( Split-Path -Path ${_compose_filepath} -Leaf )'" "3"
 
     if (-not (Test-Path ${_compose_filepath} -PathType Leaf)) {
@@ -79,7 +79,11 @@ function docker_compose_down($_compose_filepath = "", $_env_filepath = "${projec
         $_env_file_option = "--env-file ${_env_filepath}"
     }
 
-    $command = "docker-compose --file ${_compose_filepath} ${_env_file_option} --log-level ${docker_compose_log_level} down"
+    if ($_clean_volumes) {
+        $command = "docker-compose --file ${_compose_filepath} ${_env_file_option} --log-level ${docker_compose_log_level} down --volumes --timeout 10"
+    } else {
+        $command = "docker-compose --file ${_compose_filepath} ${_env_file_option} --log-level ${docker_compose_log_level} down --timeout 10"
+    }
 
     Invoke-Expression $command
 
@@ -91,32 +95,7 @@ function docker_compose_down($_compose_filepath = "", $_env_filepath = "${projec
 }
 
 function docker_compose_down_and_clean($_compose_filepath = "", $_env_filepath = "${project_up_dir}/.env", $_log_level = ${docker_compose_log_level}) {
-    show_success_message "Downing docker containers for compose config '$( Split-Path -Path ${_compose_filepath} -Leaf )'" "3"
-
-    if (-not (Test-Path ${_compose_filepath} -PathType Leaf)) {
-        show_error_message "Unable to down containers. Docker-compose yml file not found at path  '${_compose_filepath}'."
-        exit 1
-    }
-
-    if ($_env_filepath -and ! (Test-Path $_env_filepath -PathType Leaf)) {
-        show_error_message "Unable to down containers. Related .env path provided but file does not exist at path '${_env_filepath}'. Compose file: '${_compose_filepath}'"
-        exit 1
-    }
-
-    $_env_file_option = ""
-    if (${_env_filepath}) {
-        $_env_file_option = "--env-file ${_env_filepath}"
-    }
-
-    $command = "docker-compose --file ${_compose_filepath} ${_env_file_option} --log-level ${docker_compose_log_level} down --volumes"
-
-    Invoke-Expression $command
-
-    if ($LASTEXITCODE -ne 0) {
-        show_error_message "Unable to down containers. See docker-compose output above. Process interrupted.$LASTEXITCODE"
-        show_error_message "Compose file: ${_compose_filepath}"
-        exit 1
-    }
+    docker_compose_down "${_compose_filepath}" "${_env_filepath}" $true "${_log_level}"
 }
 
 function docker_compose_up_all_directory_services($_working_directory = "", $_env_filepath = "${project_up_dir}/.env", $_log_level = ${docker_compose_log_level}) {
@@ -148,7 +127,7 @@ function docker_compose_down_all_directory_services($_working_directory = "", $_
     }
 
     foreach ($_project_compose_filepath in (Get-ChildItem -Path ${_working_directory} -Filter "docker-compose-*.yml" -Depth 1 | Select -ExpandProperty Name)) {
-        docker_compose_down "${_working_directory}/${_project_compose_filepath}" "${_env_filepath}" "${docker_compose_log_level}"
+        docker_compose_down "${_working_directory}/${_project_compose_filepath}" "${_env_filepath}" $true "${docker_compose_log_level}"
     }
 }
 

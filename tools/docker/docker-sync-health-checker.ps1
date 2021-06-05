@@ -96,8 +96,8 @@ function start_watch() {
         Start-Sleep -Seconds 10
     }
 
-    Add-Content -Path "${working_dir}/${sync_name}.log" -Value "[$( Get-Date )] ### Docker-sync restarting failed after ${attempt_no} attempts. ###"
-    Add-Content -Path "${working_dir}/${sync_name}.log" -Value "[$( Get-Date )] ### This case should be investigated. Please contact DevBox guys. ###"
+    Add-Content -Path "[$( Get-Date )] ${working_dir}/${sync_name}.log" -Value "[$( Get-Date )] ### Docker-sync restarting failed after ${attempt_no} attempts. ###"
+    Add-Content -Path "[$( Get-Date )] ${working_dir}/${sync_name}.log" -Value "[$( Get-Date )] ### This case should be investigated. Please contact DevBox guys. ###"
 }
 
 function is_main_healthchecker_process() {
@@ -157,7 +157,7 @@ function handle_hanging_unison_proceses() {
                     $_cycle_possible_hanging_unison_hashes += "${_unison_pid}:${_cycle_num}"
                 } else {
                     if (Get-WmiObject Win32_Process -Filter "ProcessId = ${_unison_pid}") {
-                        show_warning_message "Killing PID '${_unison_pid}' as its CPU over the threshold '${cpu_percentage_threshold}' for '${max_cycles_before_kill}' cycles"
+                        show_warning_message "[$( Get-Date )] ### Killing PID '${_unison_pid}' as its CPU over the threshold '${cpu_percentage_threshold}' for '${max_cycles_before_kill}' cycles"
                         # remove killed pid from the candidate list
                         $global:hanging_unison_hashes = $global:hanging_unison_hashes | Where-Object {$_ -notmatch "^${_unison_pid}:" }
                         Stop-Process ${_unison_pid}
@@ -167,7 +167,7 @@ function handle_hanging_unison_proceses() {
                 $_cycle_possible_hanging_unison_hashes += "${_unison_pid}:1"
             }
         } else {
-            show_success_message "CPU utilization normalized for PID '${_unison_pid}', reset not required"
+            show_success_message "[$( Get-Date )] ### CPU utilization normalized for PID '${_unison_pid}', reset not required"
             # remove normalized pid from the candidate list
             $global:hanging_unison_hashes = $global:hanging_unison_hashes | Where-Object {$_ -notmatch "^${_unison_pid}:" }
         }

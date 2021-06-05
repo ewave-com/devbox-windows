@@ -12,14 +12,33 @@
 ############################ Public functions ############################
 
 function start_project() {
-    show_success_message "Generating project file .env and variables" "2"
-    prepare_project_dotenv_variables $true
+    # fast strategy is available after project stopping
+    $_is_simplified_start_available=$(is_simplified_start_available)
 
-    show_success_message "Creating missing project directories" "2"
-    create_base_project_dirs
+    if (-not ${_is_simplified_start_available}) {
+        show_success_message "Start project using full strategy." "1"
+    } else {
+        show_success_message "Start project using simplified strategy." "1"
+    }
 
-    show_success_message "Preparing required project docker-up configs" "2"
-    prepare_project_docker_up_configs
+    if (-not ${_is_simplified_start_available}) {
+        set_state_last_project_status "starting"
+
+        show_success_message "Generating project file .env and variables" "2"
+        prepare_project_dotenv_variables $true
+
+        show_success_message "Creating missing project directories" "2"
+        create_base_project_dirs
+
+        show_success_message "Preparing required project docker-up configs" "2"
+        prepare_project_docker_up_configs
+    } else {
+        prepare_project_dotenv_variables $false
+
+        ensure_exposed_container_ports_are_available "${project_up_dir}/.env"
+
+        set_state_last_project_status "starting"
+    }
 
     show_success_message "Preparing nginx-reverse-proxy configs" "2"
     prepare_project_nginx_reverse_proxy_configs
@@ -30,22 +49,27 @@ function start_project() {
     show_success_message "Starting project docker container" "2"
     docker_compose_up_all_directory_services "$project_up_dir" "$project_up_dir/.env"
 
-    show_success_message "Adding domains to hosts file" "2"
-    $domains = if (-not ${WEBSITE_EXTRA_HOST_NAMES}) { ${WEBSITE_HOST_NAME} } else { "${WEBSITE_HOST_NAME},${WEBSITE_EXTRA_HOST_NAMES}" }
-    add_website_domain_to_hosts "$domains"
-
-    Remove-Item -Path "${project_up_dir}/project-stopped.flag" -Force -ErrorAction Ignore
+    if (-not ${_is_simplified_start_available}) {
+        show_success_message "Adding domains to hosts file" "2"
+        $domains = if (-not ${WEBSITE_EXTRA_HOST_NAMES}) { ${WEBSITE_HOST_NAME} } else { "${WEBSITE_HOST_NAME},${WEBSITE_EXTRA_HOST_NAMES}" }
+        add_website_domain_to_hosts "$domains"
+    }
 
     # Fix for reload network,because devbox-network contains all containers
     sleep 5
     show_success_message "Restarting nginx-reverse-proxy" "2"
     nginx_reverse_proxy_restart
+
+    set_state_dotenv_hash
+    set_state_last_project_status "started"
 }
 
 function stop_current_project() {
     if (-not (Test-Path $project_up_dir -PathType Container) -or ! ((Get-ChildItem -Path $project_up_dir -Filter "docker-*.yml" -Depth 1 | Measure-Object).Count)) {
         return
     }
+
+    set_state_last_project_status "stopping"
 
     show_success_message "Preparing project variables from .env" "2"
     prepare_project_dotenv_variables $false
@@ -65,15 +89,50 @@ function stop_current_project() {
         nginx_reverse_proxy_restart
     }
 
+    dotenv_unset_variables "$project_up_dir/.env"
+
+    set_state_last_project_status "stopped"
+
+    Remove-Variable -Name "selected_project" -Scope Global
+    Remove-Variable -Name "project_dir" -Scope Global
+    Remove-Variable -Name "project_up_dir" -Scope Global
+}
+
+
+function down_current_project() {
+    show_success_message "Preparing project variables from .env" "2"
+    prepare_project_dotenv_variables $false
+
+    if (Get-ChildItem -Path ${project_up_dir} -Filter "docker-compose-*.yml" -Depth 1) {
+        show_success_message "Downing docker containers" "2"
+        docker_compose_down_all_directory_services "${project_up_dir}" "${project_up_dir}/.env"
+    }
+
+    if (Get-ChildItem -Path ${project_up_dir} -Filter "docker-sync-*.yml" -Depth 1) {
+        show_success_message "Stopping data syncing" "2"
+        docker_sync_stop_all_directory_volumes "${project_up_dir}"
+    }
+
+    show_success_message "Cleaning nginx-reverse-proxy configs" "2"
+    cleanup_project_nginx_reverse_proxy_configs
+
+    if (is_docker_container_running 'nginx-reverse-proxy') {
+        show_success_message "Restarting nginx-reverse-proxy" "2"
+        nginx_reverse_proxy_restart
+    }
+
+    show_success_message "Cleaning project docker-up configs" "2"
+    cleanup_project_docker_up_configs
+
     show_success_message "Removing domains from hosts file" "2"
     $domains = if (-not ${WEBSITE_EXTRA_HOST_NAMES}) { ${WEBSITE_HOST_NAME} } else { "${WEBSITE_HOST_NAME},${WEBSITE_EXTRA_HOST_NAMES}" }
     delete_website_domain_from_hosts "$domains"
 
-    if (-not (Test-Path "${project_up_dir}/project-stopped.flag" -PathType Leaf)) {
-        New-Item -Path "${project_up_dir}/project-stopped.flag" | Out-Null
-    }
-
     dotenv_unset_variables "$project_up_dir/.env"
+
+    show_success_message "Deleting generated .env file" "2"
+    # remove dotenv in the end as it is the main project configuration file
+    Remove-Item "$project_up_dir/.env" -Force -ErrorAction Ignore
 
     Remove-Variable -Name "selected_project" -Scope Global
     Remove-Variable -Name "project_dir" -Scope Global
@@ -85,7 +144,7 @@ function down_and_clean_current_project() {
     prepare_project_dotenv_variables $false
 
     if (Get-ChildItem -Path ${project_up_dir} -Filter "docker-compose-*.yml" -Depth 1) {
-        show_success_message "Stopping docker containers and removing volumes" "2"
+        show_success_message "Downing docker containers and removing volumes" "2"
         docker_compose_down_and_clean_all_directory_services "${project_up_dir}" "${project_up_dir}/.env"
     }
 
@@ -143,22 +202,58 @@ function init_selected_project($_selected_project = "") {
 
 ############################ Local functions ############################
 
+function is_simplified_start_available() {
+    if (-not (is_state_file_exists)) {
+        return $false;
+    }
+
+    $_last_project_status="$(get_state_last_project_status)"
+    if (${_last_project_status} -ne "stopped") {
+        return $false;
+    }
+
+    $_current_dotenv_hash = (Get-FileHash -Algorithm MD5 "${project_dir}/.env").Hash
+
+    $_stored_dotenv_hash=(state_get_param_value "dotenv_hash")
+    if(${_current_dotenv_hash} -ne ${_stored_dotenv_hash}) {
+        return $false;
+    }
+
+    return $true;
+}
+
+
+
 function create_base_project_dirs() {
-    New-Item -ItemType Directory -Path "${project_up_dir}" -Force | Out-Null
+    if (-not (Test-Path "${project_up_dir}" -PathType Container)) {
+        New-Item -ItemType Directory -Path "${project_up_dir}" -Force | Out-Null
+    }
 
-    New-Item -ItemType Directory -Path "${project_dir}/public_html/" -Force | Out-Null
-    New-Item -ItemType Directory -Path "${project_dir}/share/" -Force | Out-Null
-    New-Item -ItemType Directory -Path "${project_dir}/sysdumps/" -Force | Out-Null
+    if (-not (Test-Path "${project_dir}/public_html/" -PathType Container)) {
+        New-Item -ItemType Directory -Path "${project_dir}/public_html/" -Force | Out-Null
+    }
 
+    if (-not (Test-Path "${project_dir}/share/" -PathType Container)) {
+        New-Item -ItemType Directory -Path "${project_dir}/share/" -Force | Out-Null
+    }
 
-    New-Item -ItemType Directory -Path "${project_dir}/share/composer" -Force | Out-Null
+    if (-not (Test-Path "${project_dir}/sysdumps/" -PathType Container)) {
+        New-Item -ItemType Directory -Path "${project_dir}/sysdumps/" -Force | Out-Null
+    }
+
+    if (-not (Test-Path "${project_dir}/share/composer" -PathType Container)) {
+        New-Item -ItemType Directory -Path "${project_dir}/share/composer" -Force | Out-Null
+    }
     $_composer_readme_path = "${project_dir}/share/composer/readme.txt"
     if (-not (Test-Path ${_composer_readme_path} -PathType Leaf)) {
         Add-Content -Path ${_composer_readme_path} -Value "This directory content will be copied into '/var/www/.composer' inside container (see bashrc configs bashrc_www-data)."
         Add-Content -Path ${_composer_readme_path} -Value "You can put your composer auth.json here if required."
     }
 
-    New-Item -ItemType Directory -Path "${project_dir}/share/ssh" -Force | Out-Null
+    if (-not (Test-Path "${project_dir}/share/ssh" -PathType Container)) {
+        New-Item -ItemType Directory -Path "${project_dir}/share/ssh" -Force | Out-Null
+    }
+
     $_ssh_readme_path = "${project_dir}/share/ssh/readme.txt"
     if (-not (Test-Path ${_ssh_readme_path} -PathType Leaf)) {
         New-Item -Path ${_ssh_readme_path} -Force | Out-Null
@@ -166,15 +261,20 @@ function create_base_project_dirs() {
         Add-Content -Path ${_ssh_readme_path} -Value "You can put your ssh keys here if required."
     }
 
-    New-Item -ItemType Directory -Path "${project_dir}/sysdumps/composer/" -Force | Out-Null
+    if (-not (Test-Path "${project_dir}/sysdumps/composer/" -PathType Container)) {
+        New-Item -ItemType Directory -Path "${project_dir}/sysdumps/composer/" -Force | Out-Null
+    }
 
-    New-Item -ItemType Directory -Path "${project_dir}/sysdumps/node_modules/" -Force | Out-Null
+    if (-not (Test-Path "${project_dir}/sysdumps/composer/" -PathType Container)) {
+        New-Item -ItemType Directory -Path "${project_dir}/sysdumps/composer/" -Force | Out-Null
+    }
 
-    if (${MYSQL_ENABLE} -eq "yes") {
+
+    if (${MYSQL_ENABLE} -eq "yes" -and -not (Test-Path "${project_dir}/sysdumps/mysql" -PathType Container)) {
         New-Item -ItemType Directory -Path "${project_dir}/sysdumps/mysql" -Force | Out-Null
     }
 
-    if (${ELASTICSEARCH_ENABLE} -eq "yes") {
+    if (${ELASTICSEARCH_ENABLE} -eq "yes" -and -not (Test-Path "${project_dir}/sysdumps/elasticsearch/data" -PathType Container)) {
         New-Item -ItemType Directory -Path "${project_dir}/sysdumps/elasticsearch/data" -Force | Out-Null
     }
 

@@ -21,6 +21,8 @@ function docker_sync_start($_config_file = "", $_sync_name = "", $_show_logs = $
     $_working_dir = $( get_config_file_working_dir "${_config_file}" )
     $_show_logs_for_syncs = (get_config_file_option ${_config_file} 'devbox_show_logs_for_syncs')
 
+    $_sync_strategy=(get_config_file_sync_strategy ${_config_file})
+
     # start syncs using explicit docker-sync sync name to have separate daemon pid file and logging for each sync
     foreach ($_sync_name in $_sync_names) {
         if (-not (is_docker_container_exist ${_sync_name})) {
@@ -35,7 +37,7 @@ function docker_sync_start($_config_file = "", $_sync_name = "", $_show_logs = $
 
         Add-Content -Path "${_working_dir}/${_sync_name}.log" -Value "[$( Get-Date )] Starting synchronization..."
 
-        if (${_show_logs} -and (${_show_logs_for_syncs} | Select-String -Pattern "${_sync_name}")) {
+        if (${_show_logs} -and (${_show_logs_for_syncs} | Select-String -Pattern "${_sync_name}") -and "${_sync_strategy}" -ne "native") {
             show_success_message "Opening logs window for sync ${_sync_name}" "3"
             show_sync_logs_window ${_config_file} ${_sync_name}
         }
@@ -63,7 +65,7 @@ function docker_sync_start($_config_file = "", $_sync_name = "", $_show_logs = $
         }
     }
 
-    if (${_with_health_check}) {
+    if (${_with_health_check} -and ${_sync_strategy} -ne "native") {
         start_background_health_checker ${_config_file}
     }
 }
@@ -75,10 +77,12 @@ function docker_sync_stop($_config_file = "", $_kill_service_processes = $true) 
         exit 1
     }
 
+    $_sync_strategy=(get_config_file_sync_strategy ${_config_file})
+
     show_success_message "Stopping docker-sync for all syncs from config '$( Split-Path -Path ${_config_file} -Leaf )'" "3"
 
     # terminate health-checker background processes
-    if ($_kill_service_processes) {
+    if ($_kill_service_processes -and (${_sync_strategy} -ne "native")) {
         stop_background_health_checker $_config_file
     }
 
@@ -101,7 +105,7 @@ function docker_sync_stop($_config_file = "", $_kill_service_processes = $true) 
         Throw "Docker-sync stop error"
     }
 
-    if ($_kill_service_processes) {
+    if ($_kill_service_processes -and (${_sync_strategy} -ne "native")) {
         close_sync_logs_window ${_config_file}
     }
 }
@@ -368,6 +372,27 @@ function get_config_file_option($_config_file = "", $_option_name = "") {
     }
 
     return ${_option_value}
+}
+
+function get_config_file_sync_strategy($_config_file = "") {
+
+    if (-not ${_config_file}) {
+        show_error_message "Unable to retrieve sync option. File does not exist at path  '${_config_file}'."
+        exit
+    }
+
+    $_syncs_content = (Get-Content -Path $_config_file | Select-String -Pattern "^syncs:" -Context 0, 20 | ForEach-Object { $_.Context.PostContext })
+
+#    $_sync_strategy = $_syncs_content | Select-String -Pattern "^\s{2,4}(\S+):" | ForEach-Object -MemberName Matches | ForEach-Object { $_.Groups[1].Value }
+    $_sync_strategy_match = $_syncs_content | Select-String -Pattern "^\s{4,8}sync_strategy:\s?(\S+)" | ForEach-Object -MemberName Matches | ForEach-Object { $_.Groups[1].Value } | Select -First 1
+
+    if ($_sync_strategy_match) {
+        $_sync_strategy = ($_sync_strategy_match -Replace "' ")
+    } else {
+        $_sync_strategy = ""
+    }
+
+    echo "${_sync_strategy}"
 }
 
 ############################ Local functions end ############################
