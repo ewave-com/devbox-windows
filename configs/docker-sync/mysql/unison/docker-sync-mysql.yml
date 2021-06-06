@@ -6,7 +6,7 @@ options:
 syncs:
     {{PROJECT_NAME}}_{{CONTAINER_MYSQL_NAME}}_data_sync:
         src: '{{DEVBOX_PROJECT_DIR}}/sysdumps/mysql'
-        sync_strategy: 'unison'         # My pretty comment
+        sync_strategy: 'unison'
         unison_image: eugenmayer/unison:2.51.3-4.12.0-AMD64
         sync_prefer: dest               # prefer container data
         watch_only: true                # Ewave custom option, skip initial sync expect precopy to run only background watch

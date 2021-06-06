@@ -1,5 +1,6 @@
 . require_once "$devbox_root/tools/system/constants.ps1"
 . require_once "$devbox_root/tools/system/output.ps1"
+. require_once "$devbox_root/tools/system/file.ps1"
 . require_once "$devbox_root/tools/system/wsl.ps1"
 
 ############################ Public functions ############################
@@ -251,8 +252,8 @@ function install_wsl_docker_sync() {
             exit
         }
 
-        $_target_chsum = (Get-FileHash -Algorithm MD5 "$wsl_distro_dir/rootfs${docker_sync_lib_sources_dir}/docker-sync/sync_strategy/unison.rb").Hash
-        $_source_chsum = (Get-FileHash -Algorithm MD5 "${devbox_root}/tools/bin/docker-sync/lib/docker-sync/sync_strategy/unison.rb").Hash
+        $_target_chsum = (get_file_md5_hash "$wsl_distro_dir/rootfs${docker_sync_lib_sources_dir}/docker-sync/sync_strategy/unison.rb")
+        $_source_chsum = (get_file_md5_hash "${devbox_root}/tools/bin/docker-sync/lib/docker-sync/sync_strategy/unison.rb")
         if ($_target_chsum -ne $_source_chsum) {
             Copy-Item "${devbox_root}/tools/bin/docker-sync/lib/docker-sync/sync_strategy/unison.rb" -Destination "$wsl_distro_dir/rootfs${docker_sync_lib_sources_dir}/docker-sync/sync_strategy/unison.rb" -Force
         }
@@ -339,8 +340,8 @@ PATH="$PATH:/cygdrive/c/Program Files/Docker/Docker/resources/bin"
             exit
         }
 
-        $_target_chsum = (Get-FileHash -Algorithm MD5 "${cygwin_dir}${docker_sync_lib_sources_dir}/docker-sync/sync_strategy/unison.rb").Hash
-        $_source_chsum = (Get-FileHash -Algorithm MD5 "${devbox_root}/tools/bin/docker-sync/lib/docker-sync/sync_strategy/unison.rb").Hash
+        $_target_chsum = (get_file_md5_hash "${cygwin_dir}${docker_sync_lib_sources_dir}/docker-sync/sync_strategy/unison.rb")
+        $_source_chsum = (get_file_md5_hash "${devbox_root}/tools/bin/docker-sync/lib/docker-sync/sync_strategy/unison.rb")
         if ($_target_chsum -ne $_source_chsum) {
             Copy-Item "${devbox_root}/tools/bin/docker-sync/lib/docker-sync/sync_strategy/unison.rb" -Destination "${cygwin_dir}${docker_sync_lib_sources_dir}/docker-sync/sync_strategy/unison.rb" -Force
         }
@@ -423,8 +424,8 @@ function install_composer() {
             if (-not (Test-Path "${devbox_root}/composer.lock")) {
                 show_success_message "Running initial composer install command."
                 cd ${devbox_root}; composer install --quiet; cd $pwd
-            } elseif ($composer_autoupdate -and (Get-ChildItem "${devbox_root}/composer.lock" | Where { $_.LastWriteTime -lt (Get-Date).AddDays(-7) } )){
-                show_success_message "Running composer update command to refresh packages. Last run was performed a week ago. Please wait a few seconds"
+            } elseif ($composer_autoupdate -and (Get-ChildItem "${devbox_root}/composer.lock" | Where { $_.LastWriteTime -lt (Get-Date).AddDays(-30) } )){
+                show_success_message "Running composer update command to refresh packages. Last run was performed a month ago. Please wait a few seconds"
                 cd ${devbox_root}; composer update --quiet; cd $pwd
             }
         } catch {

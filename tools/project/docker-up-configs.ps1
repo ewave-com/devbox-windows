@@ -1,4 +1,3 @@
-. require_once "${devbox_root}/tools/system/config-replacer.ps1"
 . require_once "${devbox_root}/tools/system/file.ps1"
 . require_once "${devbox_root}/tools/system/output.ps1"
 . require_once "${devbox_root}/tools/project/project-dotenv.ps1"

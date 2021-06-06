@@ -8,6 +8,7 @@
 . require_once "${devbox_root}/tools/docker/docker.ps1"
 . require_once "${devbox_root}/tools/system/dotenv.ps1"
 . require_once "${devbox_root}/tools/system/hosts.ps1"
+. require_once "${devbox_root}/tools/system/file.ps1"
 
 ############################ Public functions ############################
 
@@ -212,7 +213,7 @@ function is_simplified_start_available() {
         return $false;
     }
 
-    $_current_dotenv_hash = (Get-FileHash -Algorithm MD5 "${project_dir}/.env").Hash
+    $_current_dotenv_hash = (get_file_md5_hash "${project_dir}/.env")
 
     $_stored_dotenv_hash=(state_get_param_value "dotenv_hash")
     if(${_current_dotenv_hash} -ne ${_stored_dotenv_hash}) {

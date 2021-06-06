@@ -52,6 +52,26 @@ function copy_path_with_project_fallback($_source_path = "", $_target_path = "",
     }
 }
 
+function replace_value_in_file($_filepath = "", $_needle = "", $_replacement = "") {
+
+    if (-not $_filepath) {
+        show_error_message "Unable to replace config value at path '${_filepath}'. Path can not be empty."
+        exit 1
+    }
+
+    if (-not (Test-Path $_filepath -PathType Leaf)) {
+        show_error_message "Unable to replace config value at path '${_filepath}'. Path does not exist! Needle '${_needle}', replacement '${_replacement}'"
+        exit 1
+    }
+
+    if (-not $_needle) {
+        show_error_message "Unable to replace config value at path '${_filepath}'. Needle can not be empty!"
+        exit 1
+    }
+
+    (Get-Content $_filepath) -Replace $_needle, $_replacement | Set-Content -Path $_filepath
+}
+
 # Replace '\r\n\' endings with '\n'
 function replace_file_line_endings($_filepath = "") {
     if (-not (Test-Path ${_filepath} -PathType Leaf)) {
@@ -62,5 +82,16 @@ function replace_file_line_endings($_filepath = "") {
     $text = [IO.File]::ReadAllText(${_filepath}) -replace "`r`n", "`n"
     [IO.File]::WriteAllText(${_filepath}, $text)
 }
+
+function get_file_md5_hash($_filepath = "") {
+    if (-not (Test-Path ${_filepath} -PathType Leaf)) {
+        show_error_message "Unable to retrieve md5 file hash. Target file doesn't exist at path '${_filepath}'."
+        exit 1
+    }
+
+    return (Get-FileHash -Algorithm MD5 ${_filepath}).Hash
+}
+
+
 
 ############################ Public functions end ############################

@@ -16,6 +16,7 @@ $devbox_root = $( (Split-Path -Parent $PSCommandPath) -Replace '\\', '/' )
 Get-Content -Path "$devbox_root/tools/print/logo.txt"
 
 install_dependencies
+update_docker_images_if_required
 
 # You can pass project name as argument to start without additional selecting
 $_selected_project = $args[0]

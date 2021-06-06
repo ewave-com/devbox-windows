@@ -9,9 +9,14 @@ $host_user = $env:UserName
 
 $docker_compose_log_level = "ERROR"
 
+# update devbox vendor packages automatically (monthly)
 $composer_autoupdate = $true
 
-$os_type = "windows"
+# update stored docker images with ':latest' tag automatically (monthly)
+$docker_images_autoupdate = $true
+# coma-separated list on skipped images to be refreshed automatically (e.g. from private storages)
+$docker_images_autoupdate_skip_images=""
+
 
 # wsl is more stable and shows better perfomance of inode watching, but a bit slower in initial filesystem scanning (wsl fstat system calls - unix simulation)
 # cygwin is a bit faster in initial filesystem scanning (native WinOs fstat calls), but a bit slower in changes watching, besides might have some unexpected errors
@@ -25,6 +30,10 @@ $cygwin_dir = "$( (Get-WmiObject Win32_OperatingSystem).SystemDrive )/cygwin64"
 $devbox_wsl_distro_name = "devbox-distro"
 $wsl_distro_dir = "$env:ALLUSERSPROFILE/wsl/${devbox_wsl_distro_name}"
 
+$os_type = "windows"
+
+##################################################################################
+
 # Set color variable
 $RED = 'Red'
 $GREEN = 'Green'
@@ -32,3 +41,9 @@ $YELLOW = 'Yellow'
 $BLUE = 'Blue'
 $WHITE = 'White'
 $SET = 'White'
+
+# if you need to override any parameters from this file, just create the file "${devbox_root}/constants-override.sh" and put required params there
+# variables will be overloaded
+if (Test-Path "${devbox_root}/constants-override.sh" -PathType Leaf) {
+  . require_one "${devbox_root}/constants-override.sh"
+}

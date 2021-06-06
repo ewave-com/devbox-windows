@@ -1,5 +1,6 @@
 . require_once "${devbox_root}/tools/system/constants.ps1"
 . require_once "${devbox_root}/tools/system/output.ps1"
+. require_once "${devbox_root}/tools/system/file.ps1"
 
 ############################ Public functions ############################
 

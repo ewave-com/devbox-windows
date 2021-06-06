@@ -1,4 +1,6 @@
 *.retry
+devbox.state
+constants-override.ps1
 projects/*
 !projects/info.txt
 configs/infrastructure/nginx-reverse-proxy/run

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+. require_once "${devbox_root}/tools/system/file.ps1"
+. require_once "${devbox_root}/tools/system/output.ps1"
+
 $state_file_name="project.state"
 
 ############################ Public functions ############################
@@ -28,7 +31,7 @@ function get_state_dotenv_hash($_state_filepath = "${project_up_dir}/${state_fil
 function set_state_dotenv_hash($_value = "", $_state_filepath = "${project_up_dir}/${state_file_name}") {
 
     if (-not $_value) {
-        $_value = (Get-FileHash -Algorithm MD5 "${project_dir}/.env").Hash
+        $_value = (get_file_md5_hash "${project_dir}/.env")
     }
 
     state_set_param_value "dotenv_hash" "${_value}" "${_state_filepath}"
