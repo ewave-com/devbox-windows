@@ -25,10 +25,12 @@ function docker_sync_start($_config_file = "", $_sync_name = "", $_show_logs = $
 
     # start syncs using explicit docker-sync sync name to have separate daemon pid file and logging for each sync
     foreach ($_sync_name in $_sync_names) {
-        if (-not (is_docker_container_exist ${_sync_name})) {
-            show_success_message "Starting initial synchronization for sync name '${_sync_name}'. Please wait" "3"
-        } else {
-            show_success_message "Starting background synchronization for sync name '${_sync_name}'" "3"
+        if ($_sync_strategy -ne "native") {
+            if (-not (is_docker_container_exist ${_sync_name})) {
+                show_success_message "Starting initial synchronization for sync name '${_sync_name}'. Please wait" "3"
+            } else {
+                show_success_message "Starting background synchronization for sync name '${_sync_name}'" "3"
+            }
         }
 
         if (-not (Test-Path "${_working_dir}/${_sync_name}.log")) {
@@ -79,7 +81,9 @@ function docker_sync_stop($_config_file = "", $_kill_service_processes = $true) 
 
     $_sync_strategy=(get_config_file_sync_strategy ${_config_file})
 
-    show_success_message "Stopping docker-sync for all syncs from config '$( Split-Path -Path ${_config_file} -Leaf )'" "3"
+    if ($_sync_strategy -ne "native") {
+        show_success_message "Stopping docker-sync for all syncs from config '$( Split-Path -Path ${_config_file} -Leaf )'" "3"
+    }
 
     # terminate health-checker background processes
     if ($_kill_service_processes -and (${_sync_strategy} -ne "native")) {
@@ -125,8 +129,12 @@ function docker_sync_clean($_config_file = "", $_sync_name = "") {
 
     $_working_dir = $( get_config_file_working_dir "${_config_file}" )
 
+    $_sync_strategy=(get_config_file_sync_strategy ${_config_file})
+
     foreach ($_sync_name in $_sync_names) {
-        show_success_message "Cleaning docker-sync for sync name '${_sync_name}'" "3"
+        if ($_sync_strategy -ne "native") {
+            show_success_message "Cleaning docker-sync for sync name '${_sync_name}'" "3"
+        }
 
         if (-not (Test-Path "${_working_dir}/${_sync_name}.log")) {
             New-Item -ItemType File -Path "${_working_dir}/${_sync_name}.log" -Force | Out-Null
@@ -387,7 +395,7 @@ function get_config_file_sync_strategy($_config_file = "") {
     $_sync_strategy_match = $_syncs_content | Select-String -Pattern "^\s{4,8}sync_strategy:\s?(\S+)" | ForEach-Object -MemberName Matches | ForEach-Object { $_.Groups[1].Value } | Select -First 1
 
     if ($_sync_strategy_match) {
-        $_sync_strategy = ($_sync_strategy_match -Replace "' ")
+        $_sync_strategy = ($_sync_strategy_match -Replace "'| ")
     } else {
         $_sync_strategy = ""
     }

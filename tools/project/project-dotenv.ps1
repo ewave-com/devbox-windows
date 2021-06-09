@@ -194,14 +194,14 @@ function add_computed_params($_env_filepath = "${project_up_dir}/.env") {
     # set OS mysql docker-sync type if 'default' chosen
     $_mysql_docker_sync_provider = (dotenv_get_param_value 'CONFIGS_PROVIDER_MYSQL_DOCKER_SYNC')
     if (${_mysql_docker_sync_provider} -eq "default") {
-        $_mysql_docker_sync_provider = "unison"
+        $_mysql_docker_sync_provider = "native"
         dotenv_set_param_value 'CONFIGS_PROVIDER_MYSQL_DOCKER_SYNC' "${_mysql_docker_sync_provider}"
     }
 
     # set OS elasticsearch docker-sync type if 'default' chosen
     $_es_docker_sync_provider = (dotenv_get_param_value 'CONFIGS_PROVIDER_ELASTICSEARCH_DOCKER_SYNC')
     if (${_es_docker_sync_provider} -eq "default") {
-        $_es_docker_sync_provider = "unison"
+        $_es_docker_sync_provider = "native"
         dotenv_set_param_value 'CONFIGS_PROVIDER_ELASTICSEARCH_DOCKER_SYNC' "${_es_docker_sync_provider}"
     }
 }
