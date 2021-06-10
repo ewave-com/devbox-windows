@@ -104,7 +104,11 @@ function docker_compose_up_all_directory_services($_working_directory = "", $_en
         exit 1
     }
 
-    foreach ($_project_compose_filepath in (Get-ChildItem -Path ${_working_directory} -Filter "docker-compose-*.yml" -Depth 1 | Select -ExpandProperty Name)) {
+    if (Test-Path "${_working_directory}/docker-compose-website.yml" -PathType Leaf) {
+        docker_compose_up "${_working_directory}/docker-compose-website.yml" "${_env_filepath}" "${docker_compose_log_level}"
+    }
+
+    foreach ($_project_compose_filepath in (Get-ChildItem -Path ${_working_directory} -Filter "docker-compose-*.yml" -Exclude "docker-compose-website.yml" -Depth 1 | Select -ExpandProperty Name)) {
         docker_compose_up "${_working_directory}/${_project_compose_filepath}" "${_env_filepath}" "${docker_compose_log_level}"
     }
 }
