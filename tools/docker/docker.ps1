@@ -3,10 +3,25 @@
 
 ############################ Public functions ############################
 
-function is_docker_container_running($_container_name = "") {
+function get_docker_container_state($_container_name = "") {
+    if (-not $_container_name) {
+        show_error_message "Unable to get docker container state. Container name cannot be empty."
+        exit 1
+    }
+
+    $_result = Invoke-Expression "docker ps -a --filter='name=^${_container_name}$' --format='{{.State}}'"
+
+    return $_result
+}
+
+function is_docker_container_running($_container_name = "", $_find_exact_match = $true) {
     if (-not $_container_name) {
         show_error_message "Unable to check active docker containers. Container name cannot be empty."
         exit 1
+    }
+
+    if ($_find_exact_match) {
+        $_container_name="^${_container_name}$"
     }
 
     $_result = Invoke-Expression "docker ps -a --filter='name=${_container_name}' --filter=status=running --format='{{.Names}}'"
@@ -17,10 +32,14 @@ function is_docker_container_running($_container_name = "") {
     }
 }
 
-function is_docker_container_exist($_container_name = "") {
+function is_docker_container_exist($_container_name = "", $_find_exact_match = $true) {
     if (-not $_container_name) {
         show_error_message "Unable to check existing docker container. Container name cannot be empty."
         exit 1
+    }
+
+    if ($_find_exact_match) {
+        $_container_name="^${_container_name}$"
     }
 
     $_result = Invoke-Expression "docker ps -a --filter='name=${_container_name}' --format='{{.Names}}'"
@@ -31,28 +50,40 @@ function is_docker_container_exist($_container_name = "") {
     }
 }
 
-function stop_container_by_name($_container_name = "") {
+function stop_container_by_name($_container_name = "", $_find_exact_match = $true) {
     if (-not $_container_name) {
         show_error_message "Unable to stop docker container. Container name cannot be empty."
         exit 1
     }
 
+    if ($_find_exact_match) {
+        $_container_name="^${_container_name}$"
+    }
+
     Invoke-Expression "docker stop (docker ps -q --filter='name=${_container_name}') --time 10" | Out-null
 }
 
-function kill_container_by_name($_container_name = "", $_signal = "SIGKILL") {
+function kill_container_by_name($_container_name = "", $_signal = "SIGKILL", $_find_exact_match = $true) {
     if (-not $_container_name) {
         show_error_message "Unable to kill docker container. Container name cannot be empty."
         exit 1
     }
 
+    if ($_find_exact_match) {
+        $_container_name="^${_container_name}$"
+    }
+
     Invoke-Expression "docker kill (docker ps -aq --filter='name=${_container_name}') -s ${_signal}" | Out-null
 }
 
-function rm_container_by_name($_container_name = "", $_force = $false) {
+function rm_container_by_name($_container_name = "", $_force = $false, $_find_exact_match = $true) {
     if (-not $_container_name) {
         show_error_message "Unable to remove docker container. Container name cannot be empty."
         exit 1
+    }
+
+    if ($_find_exact_match) {
+        $_container_name="^${_container_name}$"
     }
 
     if ($_force) {

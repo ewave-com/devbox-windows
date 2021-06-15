@@ -34,7 +34,7 @@ function is_project_started($_selected_project = "", $_fast_check = $false) {
 
     $_dotenv_project_name = (dotenv_get_param_value 'PROJECT_NAME' "${_project_dir}/.env")
     $_has_main_dotenv_file = (Test-Path "${_project_up_dir}/.env" -PathType Leaf)
-    $_has_project_running_containers = if (-not $_fast_check) { (is_docker_container_running "${_dotenv_project_name}_") } else { $true }
+    $_has_project_running_containers = if (-not $_fast_check) { (is_docker_container_running "${_dotenv_project_name}_" $false) } else { $true }
     $_docker_files_count = ((Get-ChildItem -Path "${_project_up_dir}" -Filter "docker-*.yml" -Depth 1 | Measure-Object).Count)
     $_config_dirs_count = ((Get-ChildItem -Path "${_project_up_dir}" -Directory  -Depth 1 | Measure-Object).Count)
     if (${_has_main_dotenv_file} -and ${_has_project_running_containers} -and ${_docker_files_count} -gt 0 -and ${_config_dirs_count} -gt 0) {

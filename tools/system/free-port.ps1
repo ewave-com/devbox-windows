@@ -4,15 +4,28 @@
 
 # Function which find free port for mysql service
 function get_available_mysql_port() {
-    $_port = (find_port_by_regex "340[0-9]{1}")
+    $_containers_port = $(find_port_across_docker_containers "34[0-9]{2}")
+    $_netstat_port = $(find_port_by_regex "34[0-9]{2}")
 
-    if (-not $_port) {
-        $_port = 3400
+    if (-not $_containers_port -and -not $_netstat_port) {
+        $_result_port = 3400
     } else {
-        $_port = ($_port + 1)
+        # find highest port across docker containers ports and netstat ports by mask and allocate the next one
+        $_result_port = ([int]((Get-Variable -name _containers_port,_netstat_port | Sort -Descending Value | Select -First 1).Value) + 1)
     }
 
-    return $_port
+    return $_result_port
+}
+
+function get_mysql_port_from_existing_container($_container_name = "") {
+    if (-not $_container_name) {
+        show_error_message "Unable to check mysql port from existing container. Container name cannot be empty"
+        exit 1
+    }
+
+    $_container_port = (find_port_across_docker_containers "34[0-9]{2}" ${_container_name})
+
+    return $_container_port
 }
 
 # Function which checks if mysql port is available to be exposed
@@ -40,15 +53,28 @@ function ensure_mysql_port_is_available($_checked_port = "") {
 
 # Function which find free port for elasticsearch service
 function get_available_elasticsearch_port() {
-    $_port = (find_port_by_regex "920[0-9]{1}")
+    $_containers_port = $(find_port_across_docker_containers "92[0-9]{2}")
+    $_netstat_port = $(find_port_by_regex "92[0-9]{2}")
 
-    if (-not $_port) {
-        $_port = 9200
+    if (-not $_containers_port -and -not $_netstat_port) {
+        $_result_port = 9200
     } else {
-        $_port = ($_port + 1)
+        # find highest port across docker containers ports and netstat ports by mask and allocate the next one
+        $_result_port = ([int]((Get-Variable -name _containers_port,_netstat_port | Sort -Descending Value | Select -First 1).Value) + 1)
     }
 
-    return $_port
+    return $_result_port
+}
+
+function get_elasticsearch_port_from_existing_container($_container_name = "") {
+    if (-not $_container_name) {
+        show_error_message "Unable to check elasticsearch port from existing container. Container name cannot be empty"
+        exit 1
+    }
+
+    $_container_port = (find_port_across_docker_containers "92[0-9]{2}" ${_container_name})
+
+    return $_container_port
 }
 
 # Function which checks if elasticsearch port is available to be exposed
@@ -75,15 +101,28 @@ function ensure_elasticsearch_port_is_available($_checked_port = "") {
 
 # Function which find free ssh port for website
 function get_available_website_ssh_port() {
-    $_port = (find_port_by_regex "230[0-9]{1}")
+    $_containers_port = $(find_port_across_docker_containers "23[0-9]{2}")
+    $_netstat_port = $(find_port_by_regex "23[0-9]{2}")
 
-    if (-not $_port) {
-        $_port = 2300
+    if (-not $_containers_port -and -not $_netstat_port) {
+        $_result_port = 2300
     } else {
-        $_port = ($_port + 1)
+        # find highest port across docker containers ports and netstat ports by mask and allocate the next one
+        $_result_port = ([int]((Get-Variable -name _containers_port,_netstat_port | Sort -Descending Value | Select -First 1).Value) + 1)
     }
 
-    return $_port
+    return $_result_port
+}
+
+function get_website_ssh_port_from_existing_container($_container_name = "") {
+    if (-not $_container_name) {
+        show_error_message "Unable to check website ssh port from existing container. Container name cannot be empty"
+        exit 1
+    }
+
+    $_container_port = (find_port_across_docker_containers "23[0-9]{2}" ${_container_name})
+
+    return $_container_port
 }
 
 # Function which checks if website ssh port is available to be exposed
@@ -144,6 +183,21 @@ function get_process_info_by_allocated_port($_checked_port = "") {
     }
 
     return ""
+}
+
+function find_port_across_docker_containers($_checked_port = "", $_container_name = "") {
+    if (-not $_checked_port) {
+        show_error_message "Unable to check port allocation. Port number argument cannot be empty"
+        exit 1
+    }
+
+    if (-not $_container_name) {
+        $_containers_port = (Invoke-Expression "docker inspect --format='{{json .HostConfig.PortBindings}}' ( docker ps -aq )" | ForEach { ($_ | ConvertFrom-Json).PSObject.Properties | ForEach { $_.Value.HostPort } } | Select-String -Pattern "^${_checked_port}$" | ForEach-Object -MemberName Line | Sort -Descending | Select -First 1)
+    } else {
+        $_containers_port = (Invoke-Expression "docker inspect --format='{{json .HostConfig.PortBindings}}' ${_container_name}" | ForEach { ($_ | ConvertFrom-Json).PSObject.Properties | ForEach { $_.Value.HostPort } } | Select-String -Pattern "^${_checked_port}$" | ForEach-Object -MemberName Line | Sort -Descending | Select -First 1)
+    }
+
+  return $_containers_port
 }
 
 ############################ Public functions end ############################
