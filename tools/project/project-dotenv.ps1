@@ -205,7 +205,7 @@ function add_computed_params($_env_filepath = "${project_up_dir}/.env") {
         if ($_web_container_state) {
             $_computed_ssh_port = (get_website_ssh_port_from_existing_container "${_web_container_name}")
             if (-not ($_web_container_state -eq "running")) {
-                ensure_website_ssh_port_is_available ${_computed_es_port}
+                ensure_website_ssh_port_is_available ${_computed_ssh_port}
             }
         } else {
             $_computed_ssh_port = (get_available_website_ssh_port)
