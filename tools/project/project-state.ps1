@@ -129,6 +129,10 @@ function init_state_file($_state_filepath = "${project_up_dir}/${state_file_name
         $_state_filepath = "${_state_filepath}/${state_file_name}"
     }
 
+    if (-not (Test-Path (Split-Path -Parent $_state_filepath) -PathType Container)) {
+        New-Item -ItemType Directory -Path (Split-Path -Parent $_state_filepath) -Force | Out-Null
+    }
+
     if (-not (Test-Path $_state_filepath -PathType Leaf)) {
         New-Item -ItemType File -Path "${_state_filepath}" -Force | Out-Null
     }
