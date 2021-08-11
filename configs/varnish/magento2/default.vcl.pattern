@@ -4,15 +4,18 @@ import std;
 # The minimal Varnish version is 4.0
 # For SSL offloading, pass the following header in your proxy server or load balancer: 'X-Forwarded-Proto: https'
 
+# Default backend definition. Set this to point to your content server.
 backend default {
-    .host = "{{project_name}}_{{web_container_name}}";
+    .host = "{{PROJECT_NAME}}_{{CONTAINER_WEB_NAME}}";
     .port = "80";
     .first_byte_timeout = 300s;
     .between_bytes_timeout = 300s;
 }
 
 acl purge {
-    "172.0.0.0/8";
+    "localhost";
+    "127.0.0.1";
+    "172.0.0.0"/8;
 }
 
 sub vcl_recv {
@@ -24,6 +27,7 @@ sub vcl_recv {
             return (synth(400, "X-Magento-Tags-Pattern header required"));
         }
         ban("obj.http.X-Magento-Tags ~ " + req.http.X-Magento-Tags-Pattern);
+        ban("req.http.host ~ " + req.http.X-Magento-Tags-Pattern);
         return (synth(200, "Purged"));
     }
 
@@ -34,8 +38,9 @@ sub vcl_recv {
         req.method != "TRACE" &&
         req.method != "OPTIONS" &&
         req.method != "DELETE") {
-          
-          return (pipe);
+
+        /* Non-RFC2616 or CONNECT which is weird. */
+        return (pipe);
     }
 
     # We only deal with GET and HEAD by default
@@ -75,7 +80,7 @@ sub vcl_recv {
     set req.url = regsuball(req.url,"&gclid=[^&]+",""); # strips when QS = "?foo=bar&gclid=AAA" or QS = "?foo=bar&gclid=AAA&bar=baz"
 
     # static files are always cacheable. remove SSL flag and cookie
-        if (req.url ~ "^/(pub/)?(media|static)/.*\.(ico|css|js|jpg|jpeg|png|gif|tiff|bmp|mp3|ogg|svg|swf|woff|woff2|eot|ttf|otf)$") {
+    if (req.url ~ "^/(pub/)?(media|static)/.*\.(ico|css|js|jpg|jpeg|png|gif|tiff|bmp|mp3|ogg|svg|swf|woff|woff2|eot|ttf|otf)$") {
         #unset req.http.Https;
         #unset req.http.X-Forwarded-Proto;
         unset req.http.Cookie;
@@ -105,7 +110,7 @@ sub vcl_hash {
     if (req.http.X-UA-Device) {
         hash_data(req.http.X-UA-Device);
     }
-    
+
 }
 
 sub vcl_backend_response {
@@ -152,7 +157,20 @@ sub vcl_backend_response {
         set beresp.ttl = 120s;
         set beresp.uncacheable = true;
     }
+
+    if (beresp.ttl > 0s) {
+         # unset beresp.http.set-cookie;
+    }
     return (deliver);
+}
+
+# handles redirecting from http to https
+sub vcl_synth {
+ # if (resp.status == 750) {
+ #   set resp.status = 301;
+ #   set resp.http.Location = req.http.x-redir;
+ #   return(deliver);
+ # }
 }
 
 sub vcl_deliver {
