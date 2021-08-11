@@ -82,7 +82,7 @@ function nginx_reverse_proxy_add_website_ssl_cert($_source_crt_path = "", $_sour
     copy_path "${_source_crt_path}" "${devbox_infra_dir}/nginx-reverse-proxy/run/ssl/"
 
     if (-not ${_source_key_path}) {
-        _source_key_path="$( Split-Path -Path $_source_crt_path )/$( Split-Path -Path $_source_crt_path -LeafBase ).key"
+        $_source_key_path="$( Split-Path -Path $_source_crt_path )/$((Get-Item $_source_crt_path).BaseName).key"
     }
 
     if (${_source_key_path}) {
@@ -102,7 +102,7 @@ function nginx_reverse_proxy_remove_website_ssl_cert($_crt_file_name = "", $_key
     }
 
     if (-not ${_key_file_name}) {
-        _key_file_name="$( Split-Path -Path $_source_crt_path -LeafBase ).key"
+        $_key_file_name = [System.IO.Path]::GetFileNameWithoutExtension($_crt_file_name)
     }
 
     if (Test-Path "${devbox_infra_dir}/nginx-reverse-proxy/run/ssl/${_key_file_name}" -PathType Leaf) {

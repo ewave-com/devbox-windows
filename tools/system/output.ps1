@@ -16,8 +16,8 @@ function show_warning_message($_message = "", $_hierarchy_lvl = "0") {
 
 function show_success_message($_message = "", $_hierarchy_lvl = "0") {
     $_prefix = (get_hierarchy_lvl_prefix ${_hierarchy_lvl})
-    #    Write-Host -ForegroundColor $GREEN "${_prefix}${_message}"
-    Write-Host -ForegroundColor $GREEN "$( Get-Date )${_prefix}${_message}"
+    Write-Host -NoNewline "$( Get-Date -UFormat '%d %b %X' ) "
+    Write-Host -ForegroundColor $GREEN "${_prefix}${_message}"
 }
 
 function show_message($_message = "", $_hierarchy_lvl = "0") {

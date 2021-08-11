@@ -25,26 +25,29 @@ function ssl_generate_domain_certificate($_website_name = "", $_target_crt_path 
         exit 1
     }
 
-    $_cert_basename = (Split-Path -Path $_target_crt_path -LeafBase)
+    $_cert_basename = [System.IO.Path]::GetFileNameWithoutExtension($_target_crt_path)
     if (-not $_target_key_path) {
-        _target_key_path="$( Split-Path -Path $_target_crt_path )/$_cert_basename).key"
+        $_target_key_path = "$( Split-Path -Path $_target_crt_path )/$_cert_basename.key"
     }
 
     New-Item -ItemType directory -Path (Split-Path -Path $_target_crt_path) -Force | Out-Null
 
     # use reverse-proxy container to avoid ssl software installation and as this infrastructure container is avaiable for generating
     if (is_docker_container_running 'nginx-reverse-proxy') {
-        $_cert_basename = (Split-Path -Path $_target_crt_path -LeafBase)
-        docker exec -it 'nginx-reverse-proxy' /bin/bash -c "openssl req -x509 -nodes \
-          -newkey ec:<(openssl ecparam -name secp384r1) \
-          -keyout /temp/$_cert_basename.key \
-          -out /temp/$_cert_basename.crt \
-          -days 365 \
-          -subj '/C=BY/ST=Minsk/L=Minsk/O=DevOpsTeam_EWave/CN=$_website_name' \
-        >/dev/null # 2>&1"
-        docker cp 'nginx-reverse-proxy': /temp/$_cert_basename.crt $_target_crt_path
-        docker cp 'nginx-reverse-proxy': /temp/$_cert_basename.key $_target_key_path
-        docker exec -it 'nginx-reverse-proxy' /bin/bash -c "rm /temp/$_cert_basename.crt /temp/$_cert_basename.key"
+        $_opensslCommand = "[ ! -f /root/.rnd ] && openssl rand -writerand /root/.rnd; " +
+                "openssl req -x509 -nodes " +
+                "-newkey ec:<(openssl ecparam -name secp384r1) " +
+                "-keyout /tmp/$_cert_basename.key " +
+                "-out /tmp/$_cert_basename.crt " +
+                "-days 365 " +
+                "-subj '/C=BY/ST=Minsk/L=Minsk/O=DevOpsTeam_EWave/CN=$_website_name' " +
+                " >/dev/null # 2>&1"
+
+        docker exec -it 'nginx-reverse-proxy' /bin/bash -c $_opensslCommand
+
+        docker cp "nginx-reverse-proxy:/tmp/$_cert_basename.crt" "$_target_crt_path"
+        docker cp "nginx-reverse-proxy:/tmp/$_cert_basename.key" "$_target_key_path"
+        docker exec -it 'nginx-reverse-proxy' /bin/bash -c "rm /tmp/$_cert_basename.crt /tmp/$_cert_basename.key"
     } else {
         show_error_message "Unable to generate CA certificate. Nginx-reverse-proxy container for generating is not running."
         Exit 1

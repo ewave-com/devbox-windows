@@ -354,6 +354,7 @@ PATH="$PATH:/cygdrive/c/Program Files/Docker/Docker/resources/bin"
 # Check and install unison
 function install_cygwin_unison() {
     try {
+    # todo, check disk letter "Select-String -Pattern"
         $_is_unison_installed = ((Test-Path "${cygwin_dir}\home\$env:UserName\.bash_profile") -and (Get-Content -Path "${cygwin_dir}\home\$env:UserName\.bash_profile" | Select-String -Pattern 'devbox/tools/bin'))
         # This command is more correct, but running cygwin bash profile takes takes 1-2 seconds on every launch
         # $_is_unison_installed = ((& C:\cygwin64\bin\bash.exe --login -c 'unison -version'))

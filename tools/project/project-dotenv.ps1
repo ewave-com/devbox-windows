@@ -41,6 +41,8 @@ function prepare_project_dotenv_file($_force = $false) {
     Copy-Item "${project_dir}/.env" -Destination "${project_up_dir}/.env" -Force
     Add-Content -Path "${project_dir}/.env" -Value ""
 
+    replace_file_line_endings "${project_up_dir}/.env"
+
     $current_env_filepath = "${project_up_dir}/.env"
 
     apply_backward_compatibility_transformations "${project_up_dir}/.env"
@@ -50,8 +52,6 @@ function prepare_project_dotenv_file($_force = $false) {
     add_static_dir_paths_for_docker_sync "${project_up_dir}/.env"
 
     $current_env_filepath = ""
-
-    replace_file_line_endings "${project_up_dir}/.env"
 }
 
 # apply backward compatibility transformations
