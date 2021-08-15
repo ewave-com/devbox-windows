@@ -68,7 +68,6 @@ function stop_infrastructure($_dotenv_filepath = "${dotenv_infra_filepath}") {
     # Delete orphaned files, all other should be deleted during project stopping
     Remove-Item "${devbox_infra_dir}/nginx-reverse-proxy/run/conf.d/*" -Force | Out-Null
     Remove-Item "${devbox_infra_dir}/nginx-reverse-proxy/run/logs/*" -Force | Out-Null
-    Remove-Item "${devbox_infra_dir}/nginx-reverse-proxy/run/ssl/*" -Force | Out-Null
     if (is_docker_container_running 'nginx-reverse-proxy') {
         docker_compose_down "${devbox_infra_dir}/docker-compose-nginx-reverse-proxy.yml" "${_dotenv_filepath}"
     }
@@ -107,7 +106,6 @@ function down_infrastructure($_dotenv_filepath = "${dotenv_infra_filepath}") {
     # down nginx-reverse-proxy
     Remove-Item "${devbox_infra_dir}/nginx-reverse-proxy/run/conf.d/*" -Force | Out-Null
     Remove-Item "${devbox_infra_dir}/nginx-reverse-proxy/run/logs/*" -Force | Out-Null
-    Remove-Item "${devbox_infra_dir}/nginx-reverse-proxy/run/ssl/*" -Force | Out-Null
     if (is_docker_container_running 'nginx-reverse-proxy') {
         docker_compose_down "${devbox_infra_dir}/docker-compose-nginx-reverse-proxy.yml" "${_dotenv_filepath}"
     }

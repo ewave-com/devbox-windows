@@ -20,7 +20,7 @@ function prepare_project_nginx_reverse_proxy_configs() {
     replace_value_in_file "${project_up_dir}/nginx-reverse-proxy/conf.d/${WEBSITE_HOST_NAME}.conf" "{{web_container_name}}" "${_proxy_pass_container_name}"
 
     $_website_nginx_extra_host_names = ''
-    if (! "${WEBSITE_EXTRA_HOST_NAMES}") {
+    if ("${WEBSITE_EXTRA_HOST_NAMES}") {
         $_website_nginx_extra_host_names = (${WEBSITE_EXTRA_HOST_NAMES} -Replace ',', ' ')
     }
     replace_value_in_file "${_nginx_proxy_config_filepath}" "{{website_extra_host_names_nginx_list}}" "${_website_nginx_extra_host_names}"
@@ -44,16 +44,20 @@ function prepare_project_nginx_reverse_proxy_configs() {
     }
 }
 
-function cleanup_project_nginx_reverse_proxy_configs() {
+function cleanup_project_nginx_reverse_proxy_configs($_full_clean = $false) {
     if (${WEBSITE_PROTOCOL} -eq 'http') {
         nginx_reverse_proxy_remove_project_website "${WEBSITE_HOST_NAME}"
         return
     }
 
     if (${WEBSITE_PROTOCOL} -eq 'https') {
-        nginx_reverse_proxy_remove_project_website "${WEBSITE_HOST_NAME}" "${WEBSITE_SSL_CERT_FILENAME}.crt"
+        if ($_full_clean) {
+            nginx_reverse_proxy_remove_project_website "${WEBSITE_HOST_NAME}" "${WEBSITE_SSL_CERT_FILENAME}.crt"
 
-        ssl_disable_system_certificate "${WEBSITE_SSL_CERT_FILENAME}.crt"
+            ssl_disable_system_certificate "${WEBSITE_SSL_CERT_FILENAME}.crt"
+        } else {
+            nginx_reverse_proxy_remove_project_website "${WEBSITE_HOST_NAME}"
+        }
     }
 }
 
@@ -66,7 +70,20 @@ function prepare_website_ssl_certificate() {
     copy_path_with_project_fallback "configs/ssl/${CONFIGS_PROVIDER_SSL}/${WEBSITE_SSL_CERT_FILENAME}.key" "${project_up_dir}/configs/ssl/${WEBSITE_SSL_CERT_FILENAME}.key" $false
 
     if (-not (Test-Path "${project_up_dir}/configs/ssl/${WEBSITE_SSL_CERT_FILENAME}.crt" -PathType Leaf)) {
-        ssl_generate_domain_certificate "${WEBSITE_HOST_NAME}" "${project_up_dir}/configs/ssl/${WEBSITE_SSL_CERT_FILENAME}.crt"
+        $_extra_domains = if (-not ${WEBSITE_EXTRA_HOST_NAMES}) { "" } else { "${WEBSITE_EXTRA_HOST_NAMES}" }
+
+        $_ssl_dir = "${devbox_infra_dir}/nginx-reverse-proxy/run/ssl"
+        if ((-not (Test-Path "${_ssl_dir}/DevboxRootCA.crt" -PathType Leaf)) -or (-not (Test-Path "${_ssl_dir}/DevboxRootCA.pem" -PathType Leaf)) -or (-not (Test-Path "${_ssl_dir}/DevboxRootCA.key" -PathType Leaf)))
+        {
+            ssl_generate_root_certificate_authority "${_ssl_dir}/DevboxRootCA.crt"
+            ssl_import_new_system_certificate "${_ssl_dir}/DevboxRootCA.crt"
+
+            show_success_message "Devbox Root CA has been generated and imported to your system."
+            show_warning_message "If you still see the warning about insecure connection in your browser please import the certificate authority to your browser. "
+            show_warning_message "Root CA Path: ${_ssl_dir}/DevboxRootCA.crt"
+        }
+
+        ssl_generate_domain_certificate "${WEBSITE_HOST_NAME}" "$_extra_domains" "${project_up_dir}/configs/ssl/${WEBSITE_SSL_CERT_FILENAME}.crt" "${project_up_dir}/configs/ssl/${WEBSITE_SSL_CERT_FILENAME}.key" "${_ssl_dir}/DevboxRootCA.pem"
     }
 
     if (-not (Test-Path "${project_up_dir}/configs/ssl/${WEBSITE_SSL_CERT_FILENAME}.crt" -PathType Leaf)) {
