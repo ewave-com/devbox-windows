@@ -7,7 +7,7 @@
 function select_sync_action_menu() {
     draw_menu_header "Sync action"
 
-    $_options_str = "[Exit],Start sync,Stop sync,Restart sync,Purge data and restart re-sync,Show logs"
+    $_options_str = "[Exit],Restart sync,Stop sync,Start sync,Show logs"
 
     $_selected_action = (select_menu_item "${_options_str}")
 
@@ -16,14 +16,12 @@ function select_sync_action_menu() {
         exit
     }
 
-    if ($_selected_action -eq "Start sync") {
-        $_selected_action = 'start_sync'
+    if ($_selected_action -eq "Restart sync") {
+        $_selected_action = 'restart_sync'
     } elseif ($_selected_action -eq "Stop sync") {
         $_selected_action = 'stop_sync'
-    } elseif ($_selected_action -eq "Restart sync") {
-        $_selected_action = 'restart_sync'
-    } elseif($_selected_action -eq "Purge data and restart re-sync") {
-        $_selected_action = 'purge_and_restart_sync'
+    } elseif ($_selected_action -eq "Start sync") {
+        $_selected_action = 'start_sync'
     } elseif($_selected_action -eq "Show logs") {
         $_selected_action = 'show_logs'
     }

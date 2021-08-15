@@ -47,13 +47,6 @@ Switch -exact (${_selected_sync_action}) {
         restart_sync "${_selected_project}"
         break
     }
-    "purge_and_restart_sync" {
-        if (-not ${_selected_project}) {
-            $_selected_project = (select_project_menu)
-        }
-        purge_and_restart_sync "${_selected_project}"
-        break
-    }
     "show_logs" {
         if (-not ${_selected_project}) {
             $_selected_project = (select_project_menu)
