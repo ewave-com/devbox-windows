@@ -1,4 +1,4 @@
-# Linux DevBox
+# Windows DevBox
 http://devbox.ewave.com/
 
 ## Release 3.0.0
