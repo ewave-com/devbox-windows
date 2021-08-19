@@ -1,4 +1,4 @@
-# eWave DevBox (Linux)
+# eWave DevBox (Windows)
 
 DevBox website: http://devbox.ewave.com/
 
