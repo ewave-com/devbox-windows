@@ -182,7 +182,7 @@ function add_computed_params($_env_filepath = "${project_up_dir}/.env") {
             ensure_elasticsearch_port_is_available ${_configured_es_port}
         } else {
             $_es_container_name="${_project_name}_$(dotenv_get_param_value 'CONTAINER_ELASTICSEARCH_NAME')"
-            $_es_container_state = (get_docker_container_state "${_mysql_container_name}")
+            $_es_container_state = (get_docker_container_state "${_es_container_name}")
             if ($_es_container_state) {
                 $_computed_es_port = (get_elasticsearch_port_from_existing_container "${_es_container_name}")
                 if (-not ($_es_container_state -eq "running")) {
