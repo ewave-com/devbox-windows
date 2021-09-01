@@ -24,13 +24,15 @@ module DockerSync
                         else
                           'eugenmayer/unison:2.51.3-4.12.0-AMD64'
                         end
-        begin
-          Dependencies::Unison.ensure!
-          Dependencies::Unox.ensure! if Environment.mac?
-        rescue StandardError => e
-          say_status 'error', "#{@sync_name} has been configured to sync with unison, but no unison available", :red
-          say_status 'error', e.message, :red
-          exit 1
+        if !ENV['DOCKER_SYNC_SKIP_DEPENDENCIES_CHECK']
+          begin
+            Dependencies::Unison.ensure!
+            Dependencies::Unox.ensure! if Environment.mac?
+          rescue StandardError => e
+            say_status 'error', "#{@sync_name} has been configured to sync with unison, but no unison available", :red
+            say_status 'error', e.message, :red
+            exit 1
+          end
         end
       end
 

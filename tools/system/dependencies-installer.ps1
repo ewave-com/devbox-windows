@@ -2,6 +2,7 @@
 . require_once "$devbox_root/tools/system/output.ps1"
 . require_once "$devbox_root/tools/system/file.ps1"
 . require_once "$devbox_root/tools/system/wsl.ps1"
+. require_once "$devbox_root/tools/devbox/devbox-state.ps1"
 
 ############################ Public functions ############################
 
@@ -344,18 +345,42 @@ PATH="$PATH:/cygdrive/c/Program Files/Docker/Docker/resources/bin"
         $_source_chsum = (get_file_md5_hash "${devbox_root}/tools/bin/docker-sync/lib/docker-sync/sync_strategy/unison.rb")
         if ($_target_chsum -ne $_source_chsum) {
             Copy-Item "${devbox_root}/tools/bin/docker-sync/lib/docker-sync/sync_strategy/unison.rb" -Destination "${cygwin_dir}${docker_sync_lib_sources_dir}/docker-sync/sync_strategy/unison.rb" -Force
+            $_target_chsum = (get_file_md5_hash "${cygwin_dir}${docker_sync_lib_sources_dir}/docker-sync/sync_strategy/unison.rb")
+            devbox_state_set_param_value 'unison_rb_hash' ${_target_chsum}
         }
 
         # create symlink of missing '/etc/localtime' as docker-sync uses system time for comparisons
         & "${cygwin_dir}\bin\bash.exe" --login -c 'ln -nsf "/usr/share/zoneinfo/${TZ}" /etc/localtime'
+    } else {
+        $_target_chsum = (devbox_state_get_param_value 'unison_rb_hash')
+        if (-not $_target_chsum) {
+            $docker_sync_lib_sources_dir = (& "${cygwin_dir}/bin/bash.exe" --login -c 'dirname $(gem which docker-sync)')
+            if (-not $docker_sync_lib_sources_dir) {
+                show_error_message "Docker-sync package was not installed. Please try to remove Cygwin and try again or contact DevBox developers."
+                exit
+            }
+            $_target_chsum = (get_file_md5_hash "${cygwin_dir}${docker_sync_lib_sources_dir}/docker-sync/sync_strategy/unison.rb")
+            devbox_state_set_param_value 'unison_rb_hash' ${_target_chsum}
+        }
+
+        $_source_chsum = (get_file_md5_hash "${devbox_root}/tools/bin/docker-sync/lib/docker-sync/sync_strategy/unison.rb")
+        if ($_target_chsum -ne $_source_chsum) {
+            $docker_sync_lib_sources_dir = (& "${cygwin_dir}/bin/bash.exe" --login -c 'dirname $(gem which docker-sync)')
+            if (-not $docker_sync_lib_sources_dir) {
+                show_error_message "Docker-sync package was not installed. Please try to remove Cygwin and try again or contact DevBox developers."
+                exit
+            }
+            Copy-Item "${devbox_root}/tools/bin/docker-sync/lib/docker-sync/sync_strategy/unison.rb" -Destination "${cygwin_dir}${docker_sync_lib_sources_dir}/docker-sync/sync_strategy/unison.rb" -Force
+            $_target_chsum = (get_file_md5_hash "${cygwin_dir}${docker_sync_lib_sources_dir}/docker-sync/sync_strategy/unison.rb")
+            devbox_state_set_param_value 'unison_rb_hash' ${_target_chsum}
+        }
     }
 }
 
 # Check and install unison
 function install_cygwin_unison() {
     try {
-    # todo, check disk letter "Select-String -Pattern"
-        $_is_unison_installed = ((Test-Path "${cygwin_dir}\home\$env:UserName\.bash_profile") -and (Get-Content -Path "${cygwin_dir}\home\$env:UserName\.bash_profile" | Select-String -Pattern 'devbox/tools/bin'))
+        $_is_unison_installed = ((Test-Path "${cygwin_dir}\home\$env:UserName\.bash_profile") -and (Get-Content -Path "${cygwin_dir}\home\$env:UserName\.bash_profile" | Select-String -Pattern 'tools/bin/cygwin'))
         # This command is more correct, but running cygwin bash profile takes takes 1-2 seconds on every launch
         # $_is_unison_installed = ((& C:\cygwin64\bin\bash.exe --login -c 'unison -version'))
     } catch {

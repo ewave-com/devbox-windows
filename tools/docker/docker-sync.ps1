@@ -55,6 +55,8 @@ function docker_sync_start($_config_file = "", $_sync_name = "", $_show_logs = $
             # Command example: & C:\cygwin64\bin\bash.exe --login -c "DOCKER_SYNC_SKIP_DEPENDENCIES_CHECK=1 docker-sync start --config='${_config_file}' --sync-name='${_sync_name}' --dir='${_working_dir}' --app_name='${_sync_name}'"
             # Direct calls using [& \bash.exe], [Start-Process], [Invoke-Expression] dosn't work properly because of error above
             # In addition we redirect error thread to the regualr output as cygwin detects some docker output as error and interrupts with failed exit code, generally this is docker issue
+            # Debug command output
+            # Write-Host "DOCKER_SYNC_SKIP_DEPENDENCIES_CHECK=1 DOCKER_SYNC_SKIP_UPDATE=1 docker-sync start --config='${_config_file}' --sync-name='${_sync_name}' --dir='${_working_dir}' --app_name='${_sync_name}' 2>&1 >> '${_working_dir}/${_sync_name}.log'"
             Start-Job -Name "sync_start:${_sync_name}" {
                 & "${Using:cygwin_dir}\bin\bash.exe" --login -c "DOCKER_SYNC_SKIP_DEPENDENCIES_CHECK=1 DOCKER_SYNC_SKIP_UPDATE=1 docker-sync start --config='${Using:_config_file}' --sync-name='${Using:_sync_name}' --dir='${Using:_working_dir}' --app_name='${Using:_sync_name}' 2>&1 >> '${Using:_working_dir}/${Using:_sync_name}.log'"
             } | Receive-Job -Wait
