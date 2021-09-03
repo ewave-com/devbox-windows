@@ -66,7 +66,6 @@ function delete_website_domain_from_hosts($_domains = "", $_ip_address = "127.0.
             $content = (Get-Content -Path "$env:windir/System32/drivers/etc/hosts" | Where-Object { $_ -notmatch $_all_hosts_regex })
             # additionally check to avoid file emptying due to regex error
             if ($content) {
-                Write-Host "Get-Content -Path '$env:windir/System32/drivers/etc/hosts' | Where-Object { $_ -notmatch $_all_hosts_regex }"
                 Start-Process PowerShell -Wait -Verb RunAs -WindowStyle Hidden -ArgumentList "-ExecutionPolicy Bypass", "-Command & {$hostsScriptBlock rm_host_by_regex('${_all_hosts_regex}')}"
             }
         } catch {
