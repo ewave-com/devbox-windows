@@ -51,18 +51,23 @@ function delete_website_domain_from_hosts($_domains = "", $_ip_address = "127.0.
     if ($_all_hosts_regex) {
         $_all_hosts_regex = "^($([string]::Join(')|(', $_all_hosts_regex)))$"
 
-        $_new_hosts_content = (Get-Content -Path $_hosts_filepath | Where-Object { $_ -notmatch $_all_hosts_regex })
         $hostsScriptBlock = {
             function rm_host_by_regex($regex) {
                 # read and write without pipe, otherwise writing in-place will be impossible because of busy file descriptor
                 $content = (Get-Content -Path "$env:windir/System32/drivers/etc/hosts" | Where-Object { $_ -notmatch $regex })
-                $content | Set-Content -Path "$env:windir/System32/drivers/etc/hosts"
+                if ($content) {
+                    $content | Set-Content -Path "$env:windir/System32/drivers/etc/hosts"
+                }
             }
         }
 
         # run priveleged function instead of pipe calls because of 'Start-Process' parsing limitations
         try {
-            Start-Process PowerShell -Wait -Verb RunAs -WindowStyle Hidden -ArgumentList "-ExecutionPolicy Bypass", "-Command & {$hostsScriptBlock rm_host_by_regex('${_all_hosts_regex}')}"
+            $content = (Get-Content -Path "$env:windir/System32/drivers/etc/hosts" | Where-Object { $_ -notmatch $_all_hosts_regex })
+            # additionally check to avoid file emptying due to regex error
+            if ($content) {
+                Start-Process PowerShell -Wait -Verb RunAs -WindowStyle Hidden -ArgumentList "-ExecutionPolicy Bypass", "-Command & {$hostsScriptBlock rm_host_by_regex('${_all_hosts_regex}')}"
+            }
         } catch {
             # catch errors if user missed UAC window and process failed due to timeout
             show_error_message "Unable to add domains to the hosts file due to the exception: $($_.Exception)"
