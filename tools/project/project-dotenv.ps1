@@ -162,7 +162,6 @@ function add_computed_params($_env_filepath = "${project_up_dir}/.env") {
         $_mysql_container_name = "${_project_name}_$(dotenv_get_param_value 'CONTAINER_MYSQL_NAME')"
         $_configured_mysql_port = $( dotenv_get_param_value 'CONTAINER_MYSQL_PORT' )
         if ($_configured_mysql_port) {
-            #################TODO
             ensure_mysql_port_is_available ${_configured_mysql_port} ${_mysql_container_name}
         } else {
             $_mysql_container_state = (get_docker_container_state "${_mysql_container_name}")
