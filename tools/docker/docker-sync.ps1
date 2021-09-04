@@ -294,7 +294,7 @@ function show_sync_logs_window($_config_file = "", $_sync_name = "") {
             New-Item -ItemType File -Path "${_working_dir}/${_sync_name}.log" -Force | Out-Null
         }
 
-        Start-Process PowerShell -ArgumentList "Get-Content '${_working_dir}/${_sync_name}.log' -tail 5 -wait"
+        Start-Process PowerShell -ArgumentList "Get-Content '${_working_dir}/${_sync_name}.log' -tail 0 -wait"
     }
 }
 
