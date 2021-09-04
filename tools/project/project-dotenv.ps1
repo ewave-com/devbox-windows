@@ -121,12 +121,15 @@ function merge_defaults($_env_filepath = "${project_up_dir}/.env") {
 function ensure_exposed_container_ports_are_available($_env_filepath = "${project_up_dir}/.env") {
     $current_env_filepath = "${_env_filepath}"
 
+    $_project_name = (dotenv_get_param_value 'PROJECT_NAME')
+
     # ensure mysql external port is available to be exposed or compute a free one
     $_mysql_enable = (dotenv_get_param_value 'MYSQL_ENABLE')
     if ("${_mysql_enable}" -eq "yes") {
         $_configured_mysql_port = $( dotenv_get_param_value 'CONTAINER_MYSQL_PORT' )
         if ($_configured_mysql_port) {
-            ensure_mysql_port_is_available ${_configured_mysql_port}
+            $_mysql_container_name = "${_project_name}_$(dotenv_get_param_value 'CONTAINER_MYSQL_NAME')"
+            ensure_mysql_port_is_available ${_configured_mysql_port} ${_mysql_container_name}
         }
     }
 
@@ -135,13 +138,15 @@ function ensure_exposed_container_ports_are_available($_env_filepath = "${projec
     if ("${_es_enable}" -eq "yes") {
         $_configured_es_port = (dotenv_get_param_value 'CONTAINER_ELASTICSEARCH_PORT')
         if ($_configured_es_port) {
-            ensure_elasticsearch_port_is_available ${_configured_es_port}
+            $_es_container_name = "${_project_name}_$(dotenv_get_param_value 'CONTAINER_ELASTICSEARCH_NAME')"
+            ensure_elasticsearch_port_is_available ${_configured_es_port} ${_es_container_name}
         }
     }
 
     $_configured_ssh_port = (dotenv_get_param_value 'CONTAINER_WEB_SSH_PORT')
     if ($_configured_ssh_port) {
-        ensure_website_ssh_port_is_available ${_configured_ssh_port}
+        $_web_container_name = "${_project_name}_$(dotenv_get_param_value 'CONTAINER_WEB_NAME')"
+        ensure_website_ssh_port_is_available ${_configured_ssh_port} ${_web_container_name}
     }
 
     $current_env_filepath = ""
@@ -149,22 +154,22 @@ function ensure_exposed_container_ports_are_available($_env_filepath = "${projec
 
 # add comupted params like dynamic ports or hosts
 function add_computed_params($_env_filepath = "${project_up_dir}/.env") {
-    $_project_name=(dotenv_get_param_value 'PROJECT_NAME')
+    $_project_name = (dotenv_get_param_value 'PROJECT_NAME')
 
     # ensure mysql external port is available to be exposed or compute a free one
     $_mysql_enable = (dotenv_get_param_value 'MYSQL_ENABLE')
     if ("${_mysql_enable}" -eq "yes") {
+        $_mysql_container_name = "${_project_name}_$(dotenv_get_param_value 'CONTAINER_MYSQL_NAME')"
         $_configured_mysql_port = $( dotenv_get_param_value 'CONTAINER_MYSQL_PORT' )
         if ($_configured_mysql_port) {
-            ensure_mysql_port_is_available ${_configured_mysql_port}
-        }
-        else {
-            $_mysql_container_name="${_project_name}_$(dotenv_get_param_value 'CONTAINER_MYSQL_NAME')"
+            #################TODO
+            ensure_mysql_port_is_available ${_configured_mysql_port} ${_mysql_container_name}
+        } else {
             $_mysql_container_state = (get_docker_container_state "${_mysql_container_name}")
             if ($_mysql_container_state) {
                 $_computed_mysql_port = (get_mysql_port_from_existing_container "${_mysql_container_name}")
                 if (-not ($_mysql_container_state -eq "running")) {
-                    ensure_mysql_port_is_available ${_computed_mysql_port}
+                    ensure_mysql_port_is_available ${_computed_mysql_port} ${_mysql_container_name}
                 }
             } else {
                 $_computed_mysql_port = (get_available_mysql_port)
@@ -177,16 +182,16 @@ function add_computed_params($_env_filepath = "${project_up_dir}/.env") {
     # ensure elasticsearch external port is available to be exposed or compute a free one
     $_es_enable = $( dotenv_get_param_value 'ELASTICSEARCH_ENABLE' )
     if ("${_es_enable}" -eq "yes") {
+        $_es_container_name="${_project_name}_$(dotenv_get_param_value 'CONTAINER_ELASTICSEARCH_NAME')"
         $_configured_es_port = (dotenv_get_param_value 'CONTAINER_ELASTICSEARCH_PORT')
         if ($_configured_es_port) {
-            ensure_elasticsearch_port_is_available ${_configured_es_port}
+            ensure_elasticsearch_port_is_available ${_configured_es_port} ${_es_container_name}
         } else {
-            $_es_container_name="${_project_name}_$(dotenv_get_param_value 'CONTAINER_ELASTICSEARCH_NAME')"
             $_es_container_state = (get_docker_container_state "${_es_container_name}")
             if ($_es_container_state) {
                 $_computed_es_port = (get_elasticsearch_port_from_existing_container "${_es_container_name}")
                 if (-not ($_es_container_state -eq "running")) {
-                    ensure_elasticsearch_port_is_available ${_computed_es_port}
+                    ensure_elasticsearch_port_is_available ${_computed_es_port} ${_es_container_name}
                 }
             } else {
                 $_computed_es_port = (get_available_elasticsearch_port)
@@ -196,16 +201,16 @@ function add_computed_params($_env_filepath = "${project_up_dir}/.env") {
         }
     }
 
+    $_web_container_name = "${_project_name}_$(dotenv_get_param_value 'CONTAINER_WEB_NAME')"
     $_configured_ssh_port = (dotenv_get_param_value 'CONTAINER_WEB_SSH_PORT')
     if ($_configured_ssh_port) {
-        ensure_website_ssh_port_is_available ${_configured_ssh_port}
+        ensure_website_ssh_port_is_available ${_configured_ssh_port} ${_web_container_name}
     } else {
-        $_web_container_name="${_project_name}_$(dotenv_get_param_value 'CONTAINER_WEB_NAME')"
         $_web_container_state = (get_docker_container_state "${_web_container_name}")
         if ($_web_container_state) {
             $_computed_ssh_port = (get_website_ssh_port_from_existing_container "${_web_container_name}")
             if (-not ($_web_container_state -eq "running")) {
-                ensure_website_ssh_port_is_available ${_computed_ssh_port}
+                ensure_website_ssh_port_is_available ${_computed_ssh_port} ${_web_container_name}
             }
         } else {
             $_computed_ssh_port = (get_available_website_ssh_port)

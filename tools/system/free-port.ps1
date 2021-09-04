@@ -29,7 +29,7 @@ function get_mysql_port_from_existing_container($_container_name = "") {
 }
 
 # Function which checks if mysql port is available to be exposed
-function ensure_mysql_port_is_available($_checked_port = "") {
+function ensure_mysql_port_is_available($_checked_port = "", $_container_name = '') {
     if (-not $_checked_port) {
         show_error_message "Unable to check mysql port. Port number argument cannot be empty"
         exit 1
@@ -39,10 +39,13 @@ function ensure_mysql_port_is_available($_checked_port = "") {
 
     $_used_port = (find_port_by_regex "$_checked_port")
     if ($_checked_port -eq $_used_port) {
-        $_process_info=(get_process_info_by_allocated_port ${_checked_port})
-        show_error_message "MYSQL port ${_checked_port} is already allocated by process ${_process_info}"
-        show_error_message "Please free the port, set port CONTAINER_MYSQL_PORT to another value or set it empty for autocompleting in '${project_dir}/.env' file"
-        exit 1
+        $_process_info = (get_process_info_by_allocated_port ${_checked_port})
+        #  if container name given then skip error if the checked allocated port belongs to the same container
+        if ((-not $_container_name) -or (-not($_process_info | Select-String -Pattern ${_container_name}))) {
+            show_error_message "MYSQL port ${_checked_port} is already allocated by process ${_process_info}"
+            show_error_message "Please free the port, set port CONTAINER_MYSQL_PORT to another value or set it empty for autocompleting in '${project_dir}/.env' file"
+            exit 1
+        }
     }
 
     if (($_checked_port -lt 3306) -or $_checked_port -gt 3499) {
@@ -78,7 +81,7 @@ function get_elasticsearch_port_from_existing_container($_container_name = "") {
 }
 
 # Function which checks if elasticsearch port is available to be exposed
-function ensure_elasticsearch_port_is_available($_checked_port = "") {
+function ensure_elasticsearch_port_is_available($_checked_port = "", $_container_name = $null) {
     if (-not $_checked_port) {
         show_error_message "Unable to check elasticsearch port. Port number argument cannot be empty"
         exit 1
@@ -88,9 +91,12 @@ function ensure_elasticsearch_port_is_available($_checked_port = "") {
     $_used_port = (find_port_by_regex $_checked_port)
     if ($_checked_port -eq $_used_port) {
         $_process_info=(get_process_info_by_allocated_port ${_checked_port})
-        show_error_message "ElasticSearch port ${_checked_port} is already allocated by process ${_process_info}"
-        show_error_message "Please free the port, set port CONTAINER_ELASTICSEARCH_PORT to another value or set it empty for autocompleting in '${project_dir}/.env' file"
-        exit 1
+        #  if container name given then skip error if the checked allocated port belongs to the same container
+        if ((-not $_container_name) -or (-not($_process_info | Select-String -Pattern ${_container_name}))) {
+            show_error_message "ElasticSearch port ${_checked_port} is already allocated by process ${_process_info}"
+            show_error_message "Please free the port, set port CONTAINER_ELASTICSEARCH_PORT to another value or set it empty for autocompleting in '${project_dir}/.env' file"
+            exit 1
+        }
     }
 
     if (($_checked_port -lt 9200) -or $_checked_port -gt 9399) {
@@ -126,7 +132,7 @@ function get_website_ssh_port_from_existing_container($_container_name = "") {
 }
 
 # Function which checks if website ssh port is available to be exposed
-function ensure_website_ssh_port_is_available($_checked_port = "") {
+function ensure_website_ssh_port_is_available($_checked_port = "", $_container_name = '') {
     if (-not $_checked_port) {
         show_error_message "Unable to check website ssh port. Port number argument cannot be empty"
         exit 1
@@ -136,9 +142,12 @@ function ensure_website_ssh_port_is_available($_checked_port = "") {
     $_used_port = (find_port_by_regex $_checked_port)
     if ($_checked_port -eq $_used_port) {
         $_process_info=(get_process_info_by_allocated_port ${_checked_port})
-        show_error_message "Website ssh port ${_checked_port} is already allocated by process ${_process_info}"
-        show_error_message "Please free the port, set port CONTAINER_WEB_SSH_PORT to another value or set it empty for autocompleting in '${project_dir}/.env' file"
-        exit 1
+        #  if container name given then skip error if the checked allocated port belongs to the same container
+        if ((-not $_container_name) -or (-not($_process_info | Select-String -Pattern ${_container_name}))) {
+            show_error_message "Website ssh port ${_checked_port} is already allocated by process ${_process_info}"
+            show_error_message "Please free the port, set port CONTAINER_WEB_SSH_PORT to another value or set it empty for autocompleting in '${project_dir}/.env' file"
+            exit 1
+        }
     }
 
     if (($_checked_port -lt 2300) -or $_checked_port -gt 2499) {
