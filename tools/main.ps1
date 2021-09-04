@@ -21,7 +21,7 @@
 
 ############################ Public functions ############################
 
-function start_devbox_project($_selected_project = "") {
+function start_devbox_project($_selected_project = "", $_no_interaction = $false) {
     show_success_message "Starting DevBox project '${_selected_project}'" "1"
 
     ensure_project_configured ${_selected_project}
@@ -48,8 +48,10 @@ function start_devbox_project($_selected_project = "") {
     # Print final project info
     print_info
 
-    # Run platform tools menu inside web-container
-    run_platform_tools
+    if (-not $_no_interaction) {
+        # Run platform tools menu inside web-container
+        run_platform_tools
+    }
 
     # Unset all used variables
     dotenv_unset_variables "${dotenv_infra_filepath}"

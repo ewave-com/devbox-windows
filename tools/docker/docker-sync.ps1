@@ -47,7 +47,7 @@ function docker_sync_start($_config_file = "", $_sync_name = "", $_show_logs = $
         if ($preferred_sync_env -eq "wsl") {
             $wsl_log_path = $( get_wsl_path "${_working_dir}/${_sync_name}.log" )
             #            Write-Host "wsl -d ${devbox_wsl_distro_name} bash --login -c `"DOCKER_SYNC_SKIP_UPDATE=1 docker-sync start --config='$(get_wsl_path ${_config_file})' --sync-name='${_sync_name}' --dir='$(get_wsl_path ${_working_dir})' --app_name='${_sync_name}'`" >> '${_working_dir}/${_sync_name}.log'`""
-            wsl -d ${devbox_wsl_distro_name} bash --login -c "DOCKER_SYNC_SKIP_DEPENDENCIES_CHECK=1 DOCKER_SYNC_SKIP_UPDATE=1 docker-sync start --config='$( get_wsl_path ${_config_file} )' --sync-name='${_sync_name}' --dir='$( get_wsl_path ${_working_dir} )' --app_name='${_sync_name}' >> '${wsl_log_path}'"
+            wsl -d ${devbox_wsl_distro_name} bash --login -c "DOCKER_SYNC_SKIP_DEPENDENCIES_CHECK=1 DOCKER_SYNC_SKIP_UPDATE=1 COMPOSE_PROJECT_NAME='${COMPOSE_PROJECT_NAME}' docker-sync start --config='$( get_wsl_path ${_config_file} )' --sync-name='${_sync_name}' --dir='$( get_wsl_path ${_working_dir} )' --app_name='${_sync_name}' >> '${wsl_log_path}'"
         } elseif ($preferred_sync_env -eq "cygwin") {
             # [Start-Job] is a bit tricky here, but we need to start cygwin bash process as background job but wait for finishing with logging in current window
             # generally it looks like detached 'nohup' process but with synchronous ruuning, Otherwise internal ruby process might fail earlier than required, to-do investigate error more deep
@@ -55,10 +55,10 @@ function docker_sync_start($_config_file = "", $_sync_name = "", $_show_logs = $
             # Command example: & C:\cygwin64\bin\bash.exe --login -c "DOCKER_SYNC_SKIP_DEPENDENCIES_CHECK=1 docker-sync start --config='${_config_file}' --sync-name='${_sync_name}' --dir='${_working_dir}' --app_name='${_sync_name}'"
             # Direct calls using [& \bash.exe], [Start-Process], [Invoke-Expression] dosn't work properly because of error above
             # In addition we redirect error thread to the regualr output as cygwin detects some docker output as error and interrupts with failed exit code, generally this is docker issue
-            # Debug command output
-            # Write-Host "DOCKER_SYNC_SKIP_DEPENDENCIES_CHECK=1 DOCKER_SYNC_SKIP_UPDATE=1 docker-sync start --config='${_config_file}' --sync-name='${_sync_name}' --dir='${_working_dir}' --app_name='${_sync_name}' 2>&1 >> '${_working_dir}/${_sync_name}.log'"
+            # Debug command output:
+            # Write-Host "DOCKER_SYNC_SKIP_DEPENDENCIES_CHECK=1 DOCKER_SYNC_SKIP_UPDATE=1 COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME} docker-sync start --config='${_config_file}' --sync-name='${_sync_name}' --dir='${_working_dir}' --app_name='${_sync_name}' 2>&1 >> '${_working_dir}/${_sync_name}.log'"
             Start-Job -Name "sync_start:${_sync_name}" {
-                & "${Using:cygwin_dir}\bin\bash.exe" --login -c "DOCKER_SYNC_SKIP_DEPENDENCIES_CHECK=1 DOCKER_SYNC_SKIP_UPDATE=1 docker-sync start --config='${Using:_config_file}' --sync-name='${Using:_sync_name}' --dir='${Using:_working_dir}' --app_name='${Using:_sync_name}' 2>&1 >> '${Using:_working_dir}/${Using:_sync_name}.log'"
+                & "${Using:cygwin_dir}\bin\bash.exe" --login -c "DOCKER_SYNC_SKIP_DEPENDENCIES_CHECK=1 DOCKER_SYNC_SKIP_UPDATE=1 COMPOSE_PROJECT_NAME=${Using:COMPOSE_PROJECT_NAME} docker-sync start --config='${Using:_config_file}' --sync-name='${Using:_sync_name}' --dir='${Using:_working_dir}' --app_name='${Using:_sync_name}' 2>&1 >> '${Using:_working_dir}/${Using:_sync_name}.log'"
             } | Receive-Job -Wait
         }
 

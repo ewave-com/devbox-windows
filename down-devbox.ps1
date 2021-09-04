@@ -1,5 +1,6 @@
-#Set-PSDebug -strict -trace 1;
-Set-PSDebug -strict; # uncommend this ince testing is done
+Set-PSDebug -strict;           # Normal working mode
+#Set-PSDebug -strict -trace 1; # Verbsoe debug mode
+
 $ErrorActionPreference = "Stop"
 
 $devbox_root = $( (Split-Path -Parent $PSCommandPath) -Replace '\\', '/' )

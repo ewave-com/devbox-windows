@@ -1,7 +1,6 @@
-# "-strict" similar to bash "set -u"
-# "-trace 1"  similar to bash "set -x"
-#Set-PSDebug -strict -trace 1;
-Set-PSDebug -strict;
+Set-PSDebug -strict;           # Normal working mode
+#Set-PSDebug -strict -trace 1; # Verbsoe debug mode
+
 $ErrorActionPreference = "Stop"
 
 $devbox_root = $( (Split-Path -Parent $PSCommandPath) -Replace '\\', '/' )
@@ -25,7 +24,12 @@ if (-not ${_selected_project}) {
     $_selected_project = (select_project_menu)
 }
 
-start_devbox_project "${_selected_project}"
+$_no_iteraction = $false
+if ($args[1] -eq "-n" -or $args[1] -eq "--no-interaction") {
+    $_no_iteraction = $true
+}
+
+start_devbox_project "${_selected_project}" $_no_iteraction
 
 Get-Content -Path "$devbox_root/tools/print/done.txt"
 
