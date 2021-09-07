@@ -28,6 +28,10 @@ function docker_compose_up($_compose_filepath = "", $_env_filepath = "${project_
     if ($LASTEXITCODE -ne 0) {
         show_error_message "Unable to start containers. See docker-compose output above. Process interrupted."
         show_error_message "Compose file: ${_compose_filepath}, related .env file: ${_env_filepath}."
+        show_warning_message "##############################"
+        show_warning_message "! If you see the message 'Unable to parse log level: compose' please disable the Experimental feature 'Use Docker Compose V2' in the Docker settings UI and try to start DevBox again again."
+        show_warning_message "Otherwise please collect as much info about the error as possible and contact DevBox developers "
+        show_warning_message "##############################"
         exit 1
     }
 }

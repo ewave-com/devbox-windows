@@ -7,7 +7,7 @@
 # import devbox state function
 . require_once "${devbox_root}/tools/devbox/devbox-state.ps1"
 # import infrastructure functions
-. require_once "$devbox_root/tools/docker/infrastructure.ps1"
+. require_once "$devbox_root/tools/devbox/infrastructure.ps1"
 # import docker image functions
 . require_once "${devbox_root}/tools/docker/docker-image.ps1"
 # import main project functions entrypoint

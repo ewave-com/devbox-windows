@@ -32,6 +32,24 @@ $wsl_distro_dir = "$env:ALLUSERSPROFILE/wsl/${devbox_wsl_distro_name}"
 
 $os_type = "windows"
 
+function get_arch_type() {
+    $_proc_info = $env:PROCESSOR_ARCHITECTURE
+
+    if ( $_proc_info -eq "AMD64") {
+        $_cpu_arch = "x64"
+    } elseif ($_proc_info -eq "X86") {
+        $_cpu_arch = "x32"
+    } elseif ($_proc_info -eq "ARM64") {
+        $_cpu_arch = "arm64"
+    } else {
+        $_cpu_arch = "unknown"
+    }
+
+    return $_cpu_arch
+}
+
+$arch_type = (get_arch_type)
+
 ##################################################################################
 
 # Set color variable
@@ -44,6 +62,6 @@ $SET = 'White'
 
 # if you need to override any parameters from this file, just create the file "${devbox_root}/constants-override.sh" and put required params there
 # variables will be overloaded
-if (Test-Path "${devbox_root}/constants-override.sh" -PathType Leaf) {
-  . require_one "${devbox_root}/constants-override.sh"
+if (Test-Path "${devbox_root}/constants-override.ps1" -PathType Leaf) {
+  . require_one "${devbox_root}/constants-override.ps1"
 }

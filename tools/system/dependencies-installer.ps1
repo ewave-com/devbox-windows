@@ -25,7 +25,7 @@ function install_dependencies() {
     }
     install_git
     install_composer
-    install_extra_packages
+    install_common_software
     register_devbox_scripts_globally
 
     if ($env:devbox_env_path_updated -eq $true) {
@@ -469,7 +469,7 @@ function install_composer() {
     }
 }
 
-function install_extra_packages() {
+function install_common_software() {
     # You can install additional packages here
 }
 

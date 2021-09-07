@@ -5,23 +5,23 @@
 ## tools/main.ps1 (Windows) or tools/main.sh (MacOs, Linux)
 
 ### Description
-Main script to handle main project operations 
+Main script to handle main project operations
 
 ### Function list
 
 #### Public functions:
 
 ```start_devbox_project ([string]$_selected_project, [bool]$_no_interaction = $false): void```
-Start project entrypoint function. 
+Start project entrypoint function.
 If $_no_interaction is true omit interactive platform_tools menu
 
 ```stop_devbox_project([string]$_selected_project): void```
 Stop project entrypoint function.
 
-```down_devbox_project([string]$_selected_project): void``` 
+```down_devbox_project([string]$_selected_project): void```
 Down project entrypoint function.
 
-```down_and_clean_devbox_project([string]$_selected_project): void``` 
+```down_and_clean_devbox_project([string]$_selected_project): void```
 Down and clean project entrypoint function.
 
 ```stop_devbox_all(): void```
@@ -73,7 +73,7 @@ $_selected_sync_names
 ### Description
 
 This script handles the operations around devbox state, it means processing of some dynamic state variables.
-It used for storing of date of last image update but could be extended with any new params if required. 
+It used for storing of date of last image update but could be extended with any new params if required.
 
 
 ### Function list
@@ -115,6 +115,77 @@ Check if the state file exist.
 
 ---------------------
 
+## tools/devbox/infrastructure.ps1 (Windows) or tools/devbox/infrastructure.sh (MacOs, Linux)
+
+### Description
+
+This script handles common DevBox infrastructure operations, e.g. start/stop/down portainer, reverse-proxy, mailer, adminer containers.
+Infrastructure starting performed prior project starting. Stopping/downing performed in the end of stopping of all projects (stop/down all menu actions).
+
+### Function list
+#### Public functions:
+
+``` start_infrastructure([string]$_dotenv_filepath = $dotenv_infra_filepath): void```
+Create internal docker network for projects.
+Also start infrastructure services: , check ports are available and start portainer, nginx-reverse-proxy, mailer, adminer.
+
+``` stop_infrastructure([string]$_dotenv_filepath = $dotenv_infra_filepath): void```
+Stop infrastructure services of portainer, nginx-reverse-proxy, mailer, adminer. Remove nginx-reverse-proxy container configs.
+
+``` down_infrastructure([string]$_dotenv_filepath = $dotenv_infra_filepath): void```
+Stop infrastructure services of portainer, nginx-reverse-proxy, mailer, adminer. Remove nginx-reverse-proxy container configs.
+Also remove internal docker network created on starting.
+
+#### Local functions: -
+
+---------------------
+
+
+## tools/devbox/nginx-reverse-proxy.ps1 (Windows) or tools/devbox/nginx-reverse-proxy.sh (MacOs, Linux)
+
+### Description
+
+The script handles common actions with infrastructure nginx-reverse-proxy container, for example adding/removal of website configs, certificates.
+
+### Function list
+#### Public functions:
+
+``` nginx_reverse_proxy_restart(): void```
+Restart nginx-reverse-proxy container.
+
+``` nginx_reverse_proxy_add_website([string]$_website_config_path, [string]$_crt_file_name, [string]$_key_file_name = ""): void```
+Add new website configuration for reverse proxy. It adds the website conf file into nginx configuration directory.
+Also can add the given SSL certificate file paths for HTTPS.
+
+``` nginx_reverse_proxy_remove_project_website([string]$_website_host_name, [string]$_crt_file_name): void```
+Removes website configuration from nginx reverse proxy by the website domain name and cert file name.
+
+#### Local functions: -
+
+``` nginx_reverse_proxy_prepare_common_folders(): void```
+Creates required nginx-reverse-proxy runtime directories and set the proper permissions.
+Directories: nginx-reverse-proxy/run/conf.d/, nginx-reverse-proxy/run/logs/, nginx-reverse-proxy/run/ssl/.
+
+``` nginx_reverse_proxy_add_website_config([string]$_website_config_path): void```
+Copy the given full path of website conf into the working nginx 'nginx-reverse-proxy/run/conf.d/' directory.
+
+``` nginx_reverse_proxy_remove_website_config([string]$_website_config_filename): void```
+Remove the website config by file name from 'nginx-reverse-proxy/run/conf.d/'.
+
+``` nginx_reverse_proxy_add_website_ssl_cert([string]$_source_crt_path, [string]$_source_key_path = ''): void```
+Copy SSL certificate file path into 'nginx-reverse-proxy/run/ssl/'.
+If $_source_key_path is empty - try to copy *.key file with the same basename as for *.crt. Or ignore if missing.
+
+``` nginx_reverse_proxy_remove_website_ssl_cert([string]$_crt_file_name, [string]$_key_file_name): void```
+Remove the certificate file by file name from 'nginx-reverse-proxy/run/ssl/'.
+If $_key_file_name is empty - try to remove *.key file with the same basename as for *.crt. Or ignore if missing.
+
+``` nginx_reverse_proxy_remove_website_logs([string]$_website_host_name): void```
+Remove website log files from 'nginx-reverse-proxy/run/logs/' based on website host name.
+
+
+---------------------
+
 ## tools/docker/docker.ps1 (Windows) or tools/docker/docker.sh (MacOs, Linux)
 
 ### Description
@@ -131,7 +202,7 @@ Native docker state values: 'created', 'restarting', 'running', 'paused', 'exite
 
 ``` is_docker_container_running([string]$_container_name, [bool]$_find_exact_match = true): bool```
 Check if container has 'running' state.
-$_find_exact_match - true for strict regexp search like "^name$", false - for soft search by part of given container name. 
+$_find_exact_match - true for strict regexp search like "^name$", false - for soft search by part of given container name.
 
 ``` is_docker_container_exist([string]$_container_name, [bool]$_find_exact_match = true): bool```
 Check if container(s) exist.
@@ -154,7 +225,7 @@ $_find_exact_match - true for strict regexp search like "^name$", false - for so
 
 ``` destroy_all_docker_services(): void```
 Stop all working containers, kill all not stopped containers, remove all existing containers.
-As well as prune volumes and prune system docker runtime data. 
+As well as prune volumes and prune system docker runtime data.
 
 #### Local functions: -
 
@@ -244,7 +315,7 @@ Sync-name equals to container name to store copied data.
 ```docker_sync_start([string]$_config_file, [string]$_sync_name = "", [bool]$_show_logs = true, [bool]$_with_health_check = true): void```
 Start docker-sync daemon for the $_config_file. If $_sync_name arg passed - start sync for this process only, start all file syncs otherwise.
 If $_show_logs true - open log window for syncs mentioned in the file option 'devbox_show_logs_for_syncs'.
-If $_with_health_check true - start detached sync health-checker process in the end for non-'native' strategies. 
+If $_with_health_check true - start detached sync health-checker process in the end for non-'native' strategies.
 
 ```docker_sync_stop([string]$_config_file, [bool]$_kill_service_processes = true): void```
 Stop docker-sync processes for all syncs from $_config_file.
@@ -252,7 +323,7 @@ If $_kill_service_processes true - also stop health-checker process and try to c
 
 ```docker_sync_clean([string]$_config_file, [string]$_sync_name = ""): void```
 Remove the data (mirrored docker data) from the related volume(s) from docker-sync config $_config_file.
-If $_sync_name is given - clean given volume,  otherwise clean all config file volumes. 
+If $_sync_name is given - clean given volume,  otherwise clean all config file volumes.
 
 ```docker_sync_start_all_directory_volumes([string]$_configs_directory, [bool]$_show_logs = true, [bool]$_with_health_check = true): void```
 Start docker-sync daemons for all docker-sync-*.yml files in the $_configs_directory.
@@ -279,7 +350,7 @@ Retrieve all sync names (equals to volume names) from all config files of the gi
 Return array(WinOs) ot coma-separated string(Linux,MacOs) with results.
 
 ``` get_config_file_by_directory_and_sync_name([string]$_configs_directory, [string]$_sync_name): void```
-Scans the given config directory to find the corresponding config file by the given $_sync_name. 
+Scans the given config directory to find the corresponding config file by the given $_sync_name.
 
 #### Local functions: -
 
@@ -290,7 +361,7 @@ Open the terminal window with realtime updated sync logs.
 Close the terminal window with sync logs.
 
 ``` start_background_health_checker([string]$_config_file): void```
-Start health-checker as a detached process. It monitors unison is working as expected and restarts it in case unison fails or hangs. 
+Start health-checker as a detached process. It monitors unison is working as expected and restarts it in case unison fails or hangs.
 
 ``` stop_background_health_checker([string]$_config_file): void```
 Stop health-checker process.
@@ -312,12 +383,12 @@ Read the param 'sync_strategy' from the given config file $_config_file.
 ### Description
 
 The health-check script which observes unison sync is working as expected and restarts it in case unison fails or hangs.
-Works as standalone and detached process for each sync thread (for each docker-sync config file). 
+Works as standalone and detached process for each sync thread (for each docker-sync config file).
 It requires the docker-sync configuration file as a first script call argument to be properly initialized.
 
 ### Function list
 #### Public functions:
-All functions of this file called just inside health-checker script. 
+All functions of this file called just inside health-checker script.
 
 #### Local functions: -
 
@@ -328,51 +399,25 @@ Also it cleans log file in case its size becomes greater that 10mB.
 
 ``` is_main_healthchecker_process([string]$--------------------): void```
 Checks if current sync health-checker instance is the main process, it means first it was started first.
-This is required to avoid single handling of hanging unison processes. 
+This is required to avoid single handling of hanging unison processes.
 
-``` handle_hanging_unison_proceses([string]$--------------------): void```
+``` handle_hanging_unison_processes([string]$--------------------): void```
 This function tries to detect is unison process hanging.
 After the first detection of high CPU utilization by unison process it is marked as reset candidate.
 High utilization means CPU usage greater than threshold 95% for one core as unison is single-core process.
 The final reset decision will be made based on 3 cycles by 3 controls checks during 30 seconds.
-In case all control checks show CPU utilization then checked unison process will be killed, related pid file will be removed 
-and sync will be restarted by the nearest pid-file check.  
+In case all control checks show CPU utilization then checked unison process will be killed, related pid file will be removed
+and sync will be restarted by the nearest pid-file check.
 
 
 ---------------------
 
-## tools/docker/infrastructure.ps1 (Windows) or tools/docker/infrastructure.sh (MacOs, Linux)
-
-### Description
-
-This script handles common DevBox infrastructure operations, e.g. start/stop/down portainer, reverse-proxy, mailer, adminer containers.
-Infrastructure starting performed prior project starting. Stopping/downing performed in the end of stopping of all projects (stop/down all menu actions).
-
-### Function list
-#### Public functions:
-
-``` start_infrastructure([string]$_dotenv_filepath = $dotenv_infra_filepath): void```
-Create internal docker network for projects.
-Also start infrastructure services: , check ports are available and start portainer, nginx-reverse-proxy, mailer, adminer. 
-
-``` stop_infrastructure([string]$_dotenv_filepath = $dotenv_infra_filepath): void```
-Stop infrastructure services of portainer, nginx-reverse-proxy, mailer, adminer. Remove nginx-reverse-proxy container configs.
-
-``` down_infrastructure([string]$_dotenv_filepath = $dotenv_infra_filepath): void```
-Stop infrastructure services of portainer, nginx-reverse-proxy, mailer, adminer. Remove nginx-reverse-proxy container configs.
-Also remove internal docker network created on starting.
-
-#### Local functions: -
-
-
-
----------------------
 
 ## tools/docker/network.ps1 (Windows) or tools/docker/network.sh (MacOs, Linux)
 
 ### Description
 
-Handle docker network base operations: create and remove. 
+Handle docker network base operations: create and remove.
 All DevBox projects will be associated with this network.
 
 ### Function list
@@ -388,52 +433,6 @@ Remove internal docker network name.
 Return internal docker network name.
 
 #### Local functions: -
-
-
-
----------------------
-
-## tools/docker/nginx-reverse-proxy.ps1 (Windows) or tools/docker/nginx-reverse-proxy.sh (MacOs, Linux)
-
-### Description
-
-The script handles common actions with infrastructure nginx-reverse-proxy container, for example adding/removal of website configs, certificates.
-
-### Function list
-#### Public functions:
-
-``` nginx_reverse_proxy_restart(): void```
-Restart nginx-reverse-proxy container.
-
-``` nginx_reverse_proxy_add_website([string]$_website_config_path, [string]$_crt_file_name, [string]$_key_file_name = ""): void```
-Add new website configuration for reverse proxy. It adds the website conf file into nginx configuration directory.
-Also can add the given SSL certificate file paths for HTTPS. 
-
-``` nginx_reverse_proxy_remove_project_website([string]$_website_host_name, [string]$_crt_file_name): void```
-Removes website configuration from nginx reverse proxy by the website domain name and cert file name. 
-
-#### Local functions: -
-
-``` nginx_reverse_proxy_prepare_common_folders([string]$--------------------): void```
-Creates required nginx-reverse-proxy runtime directories and set the proper permissions.
-Directories: nginx-reverse-proxy/run/conf.d/, nginx-reverse-proxy/run/logs/, nginx-reverse-proxy/run/ssl/.
-
-``` nginx_reverse_proxy_add_website_config([string]$_website_config_path): void```
-Copy the given full path of website conf into the working nginx 'nginx-reverse-proxy/run/conf.d/' directory.
-
-``` nginx_reverse_proxy_remove_website_config([string]$_website_config_filename): void```
-Remove the website config by file name from 'nginx-reverse-proxy/run/conf.d/'.
-
-``` nginx_reverse_proxy_add_website_ssl_cert([string]$_source_crt_path, [string]$_source_key_path = ''): void```
-Copy SSL certificate file path into 'nginx-reverse-proxy/run/ssl/'.
-If $_source_key_path is empty - try to copy *.key file with the same basename as for *.crt. Or ignore if missing.  
-
-``` nginx_reverse_proxy_remove_website_ssl_cert([string]$_crt_file_name, [string]$_key_file_name): void```
-Remove the certificate file by file name from 'nginx-reverse-proxy/run/ssl/'.
-If $_key_file_name is empty - try to remove *.key file with the same basename as for *.crt. Or ignore if missing. 
-
-``` nginx_reverse_proxy_remove_website_logs([string]$_website_host_name): void```
-Remove website log files from 'nginx-reverse-proxy/run/logs/' based on website host name.
 
 
 
@@ -468,7 +467,7 @@ Draw menu footer.
 
 ### Description
 
-Show main menu of down-devbox entrypoint with shutdown options. 
+Show main menu of down-devbox entrypoint with shutdown options.
 Menu list is static, items:
 "Stop 1 project"
 Stop ALL projects
@@ -587,7 +586,7 @@ Check if the selected proejct name is already running based on checking of main 
 Also can check running docker containers if $_fast_check is false.
 
 ``` ensure_project_configured([string]$_selected_project): void```
-Ensure project directory has main '.env' file and it has at least 'PROJECT_NAME' param. Otherwise return error. 
+Ensure project directory has main '.env' file and it has at least 'PROJECT_NAME' param. Otherwise return error.
 
 ``` is_project_configured([string]$_selected_project): bool```
 Checks if the project directory has main '.env' file and it has at least 'PROJECT_NAME' param.
@@ -601,7 +600,7 @@ Checks if the project directory has main '.env' file and it has at least 'PROJEC
 
 ### Description
 
-The script which prepares all project specific configuration files based on .env param values and collect all these configs in the 'docker-up' directory. 
+The script which prepares all project specific configuration files based on .env param values and collect all these configs in the 'docker-up' directory.
 
 ### Function list
 #### Public functions:
@@ -609,7 +608,7 @@ The script which prepares all project specific configuration files based on .env
 ``` prepare_project_docker_up_configs(): void```
 Main preparation function. It calls all required certain preparation functions.
 
-``` cleanup_project_docker_up_configs([string]$--------------------): void```
+``` cleanup_project_docker_up_configs(): void```
 Remove from the proejct 'docker-up' directory all files 'docker-compose-\*.yml' and "docker-sync-\*.yml".
 Also remove directories 'docker-up/configs/', 'docker-up/docker-sync/', 'docker-up/nginx-reverse-proxy/'
 This cleanup called when you do full down of your project.
@@ -632,7 +631,7 @@ Prepare website bash configs into 'docker-up/configs/bash/*'. Also initialize ba
 
 ``` prepare_mysql_configs(): void```
 Prepare MySql main files 'docker-up/docker-compose-mysql.yml' and 'docker-up/docker-sync-mysql.yml' config
-and also related configs into 'docker-up/configs/mysql/*'.  
+and also related configs into 'docker-up/configs/mysql/*'.
 
 ``` prepare_varnish_configs(): void```
 Prepare Varnish main file 'docker-up/docker-compose-varnish.yml' config and also related configs into 'docker-up/configs/varnish/*'.
@@ -710,19 +709,19 @@ Call platform_tools package inside web container. Called in the end of proejct s
 
 ### Description
 
-Prepare the main runtime project configuration file 'docker-up/.env' based on initial '.env'.   
+Prepare the main runtime project configuration file 'docker-up/.env' based on initial '.env'.
 
 ### Function list
 #### Public functions:
 
 ``` prepare_project_dotenv_variables([bool]$_force = false): void```
 Generate runtime 'docker-up/.env' and export all its params as global/env variables.
-If $_force false - skip generation if the file already exists. 
+If $_force false - skip generation if the file already exists.
 
 #### Local functions: -
 
 ``` prepare_project_dotenv_file([bool]$_force = false): void```
-Main preparation function. 
+Main preparation function.
 Copy the initial project file .env as 'docker-up/.env' and call other functions below one by one to get copied runtime file ready to work.
 
 ``` apply_backward_compatibility_transformations([string]$_env_filepath = "${project_up_dir}/.env"): void```
@@ -739,8 +738,8 @@ Ensure static ports mentioned in the .env are available or throw an error to pre
 Check if static ports mentioned in the .env are available or generate new dynamic ports to use.
 Also update some docker-sync params.
 
-``` add_static_dir_paths_for_docker_sync([string]$_env_filepath = "${project_up_dir}/.env"): void```
-Append the generated full paths of main project dirs into 'docker-up/.env' for proper docker-sync path resolving.
+``` add_internal_generated_prams([string]$_env_filepath = "${project_up_dir}/.env"): void```
+Append the internal generated params to the 'docker-up/.env'.
 
 ``` evaluate_expression_values([string]$_env_filepath = "${project_up_dir}/.env"): void```
 Evaluate param values which are presented through other params.
@@ -760,7 +759,7 @@ Main script to perform high-level project related operations. Mainly calls other
 #### Public functions:
 
 ``` start_project(): void```
-Start current project. 
+Start current project.
 Has the following external function calls: check that it is still not running, prepare runtime 'docker-up/.env' file, create base directories,
 prepare all required 'docker-up/' configs, start syncs and containers, add reverse-proxy configs, add records to 'hosts' file
 and update project state file.
@@ -784,7 +783,7 @@ Initialize base project directories and its related few global variables.
 
 ``` is_simplified_start_available(): bool```
 Check is fast start is available for the current project. Usually after simple proejct stopping without any .env changes.
-In case '.env' md5 hash was changed since last run of proejct state is not valid - return false. 
+In case '.env' md5 hash was changed since last run of proejct state is not valid - return false.
 
 ``` create_base_project_dirs(): void```
 Create all required project directories and set required permissions.
@@ -907,8 +906,8 @@ Install git package to the host system.
 ``` install_composer(): void```
 Install git package to the host system.
 
-``` install_extra_packages(): void```
-Install other packages like openssl, etc..
+``` install_common_software(): void```
+Install common system packages like openssl, wget, etc.
 
 ``` register_devbox_scripts_globally(): void```
 Makes main entrypoint scripts callable and adds DevBox directory to the system PATH to have a possibility to run docker from any directory.
