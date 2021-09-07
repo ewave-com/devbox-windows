@@ -27,7 +27,7 @@ function start_watch() {
     while (${attempt_no} -le ${max_attempts}) {
 
         if(is_main_healthchecker_process) {
-            handle_hanging_unison_proceses
+            handle_hanging_unison_processes
         }
 
         foreach ($sync_name in ${watched_sync_names}) {
@@ -109,7 +109,7 @@ function is_main_healthchecker_process() {
     return $false
 }
 
-function handle_hanging_unison_proceses() {
+function handle_hanging_unison_processes() {
     $_cycle_possible_hanging_unison_pids=(Get-WmiObject -class Win32_PerfFormattedData_PerfProc_Process -filter "PercentProcessorTime >= ${cpu_percentage_threshold} and Name like '${process_name}%'" | Select -Expand IDProcess)
     if(!$_cycle_possible_hanging_unison_pids) {
         if($global:hanging_unison_hashes) {

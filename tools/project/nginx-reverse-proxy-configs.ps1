@@ -1,6 +1,6 @@
 . require_once "${devbox_root}/tools/system/file.ps1"
 . require_once "${devbox_root}/tools/system/dotenv.ps1"
-. require_once "${devbox_root}/tools/docker/nginx-reverse-proxy.ps1"
+. require_once "${devbox_root}/tools/devbox/nginx-reverse-proxy.ps1"
 . require_once "${devbox_root}/tools/system/ssl.ps1"
 . require_once "${devbox_root}/tools/system/output.ps1"
 

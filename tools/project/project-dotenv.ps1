@@ -49,7 +49,7 @@ function prepare_project_dotenv_file($_force = $false) {
     merge_defaults "${project_up_dir}/.env"
     add_computed_params "${project_up_dir}/.env"
     evaluate_expression_values "${project_up_dir}/.env"
-    add_static_dir_paths_for_docker_sync "${project_up_dir}/.env"
+    add_internal_generated_prams "${project_up_dir}/.env"
 
     $current_env_filepath = ""
 }
@@ -241,7 +241,7 @@ function add_computed_params($_env_filepath = "${project_up_dir}/.env") {
 }
 
 # add static dir paths required for docker-sync mounting
-function add_static_dir_paths_for_docker_sync($_env_filepath = "${project_up_dir}/.env") {
+function add_internal_generated_prams($_env_filepath = "${project_up_dir}/.env") {
     if (-not (dotenv_get_param_value 'DEVBOX_PROJECT_DIR')) {
         $_resolved_project_dir = (Resolve-Path ${project_dir})
         if ($preferred_sync_env -eq "wsl") {
@@ -299,6 +299,14 @@ function add_static_dir_paths_for_docker_sync($_env_filepath = "${project_up_dir
             if (${_node_modules_relative_path}) {
                 dotenv_set_param_value 'NODE_MODULES_REL_PATH' "${_node_modules_relative_path}/"
             }
+        }
+    }
+
+    if(-not (dotenv_get_param_value 'DOCKER_SYNC_UNISON_IMAGE')) {
+        if ($arch_type -eq 'arm64') {
+            dotenv_set_param_value 'DOCKER_SYNC_UNISON_IMAGE' "eugenmayer/unison:2.51.3-4.12.0-ARM64"
+        } else {
+            dotenv_set_param_value 'DOCKER_SYNC_UNISON_IMAGE' "eugenmayer/unison:2.51.3-4.12.0-AMD64"
         }
     }
 }
