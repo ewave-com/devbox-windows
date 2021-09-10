@@ -24,12 +24,12 @@ if (-not ${_selected_project}) {
     $_selected_project = (select_project_menu)
 }
 
-$_no_iteraction = $false
+$_no_interaction = $false
 if ($args[1] -eq "-n" -or $args[1] -eq "--no-interaction") {
-    $_no_iteraction = $true
+    $_no_interaction = $true
 }
 
-start_devbox_project "${_selected_project}" $_no_iteraction
+start_devbox_project "${_selected_project}" $_no_interaction
 
 Get-Content -Path "$devbox_root/tools/print/done.txt"
 
