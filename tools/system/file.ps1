@@ -89,7 +89,14 @@ function get_file_md5_hash($_filepath = "") {
         exit 1
     }
 
-    return (Get-FileHash -Algorithm MD5 ${_filepath}).Hash
+    $FileStream = New-Object System.IO.FileStream($_filepath,[System.IO.FileMode]::Open)
+    $StringBuilder = New-Object System.Text.StringBuilder
+    [System.Security.Cryptography.HashAlgorithm]::Create('MD5').ComputeHash($FileStream)|%{[Void]$StringBuilder.Append($_.ToString("x2"))}
+    $FileStream.Close()
+
+#    we cannot use the simple function Get-FileHash, as it might be missing in some powershell versions
+#    return (Get-FileHash -Algorithm MD5 ${_filepath}).Hash
+    return $StringBuilder.ToString()
 }
 
 
