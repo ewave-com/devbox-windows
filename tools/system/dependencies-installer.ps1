@@ -105,8 +105,8 @@ function install_docker() {
 
     if ($_is_docker_installed -eq $false) {
         if (! $autoreistall_docker_confirmed) {
+            show_warning_message "After installation please disable settings 'Use Docker Compose V2' and 'Use the WSL 2 based engine' in General Docker Settings."
             $reply = Read-Host -Prompt "Docker is not detected on your computer. Install Docker automatically?[y/n]"
-            show_warning_message "Please disable the setting 'Use the WSL 2 based engine' in General Docker Settings after installation finished and in case of problems with docker starting because of WSL 2."
             if ($reply -notmatch "[yY]") {
                 show_warning_message "You selected manual Docker installation. Install it and try to start devbox again. Exited"
                 Exit 1
@@ -116,7 +116,9 @@ function install_docker() {
         if (-not (Test-Path "$download_dir/Docker_Desktop_Installer.exe" -PathType Leaf)) {
             $download_dir = (New-Object -ComObject Shell.Application).NameSpace('shell:Downloads').Self.Path
             show_success_message "Downloading new Docker version into $download_dir. Please wait a few minutes"
-            (new-object System.Net.WebClient).DownloadFile("https://desktop.docker.com/win/stable/Docker%20Desktop%20Installer.exe", "${download_dir}/Docker_Desktop_Installer.exe")
+            # Install 3.5.2 instead of latest as more stable version
+            (new-object System.Net.WebClient).DownloadFile("https://desktop.docker.com/win/stable/amd64/66501/Docker%20Desktop%20Installer.exe", "${download_dir}/Docker_Desktop_Installer.exe")
+#            (new-object System.Net.WebClient).DownloadFile("https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe", "${download_dir}/Docker_Desktop_Installer.exe")
         }
 
         Start-Process -Wait -FilePath "$download_dir/Docker_Desktop_Installer.exe" -ArgumentList "install --quiet"
@@ -201,15 +203,16 @@ function install_wsl() {
         show_success_message "Installing WSL distribution for DevBox"
         $download_dir = (New-Object -ComObject Shell.Application).NameSpace('shell:Downloads').Self.Path
 
-        if (-not (Test-Path "$download_dir/wsl-Ubuntu-16.04.zip")) {
+        if (-not (Test-Path "$download_dir/wsl-Ubuntu-20.04.zip")) {
             # install 16.04 as more lightwight distro (appx size ~200Mb), for comparison 20.04 distro appx takes ~440 MB
-            Invoke-WebRequest -Uri https://aka.ms/wsl-ubuntu-1604 -OutFile "$download_dir/wsl-Ubuntu-16.04.zip" -UseBasicParsing
+#            Invoke-WebRequest -Uri https://aka.ms/wsl-ubuntu-1804 -OutFile "$download_dir/wsl-Ubuntu-18.04.zip" -UseBasicParsing
+            Invoke-WebRequest -Uri https://aka.ms/wslubuntu2004 -OutFile "$download_dir/wsl-Ubuntu-20.04.zip" -UseBasicParsing
         }
 
-        Expand-Archive "$download_dir/wsl-Ubuntu-16.04.zip" "$download_dir/wsl-Ubuntu-16.04/" -Force
+        Expand-Archive "$download_dir/wsl-Ubuntu-20.04.zip" "$download_dir/wsl-Ubuntu-20.04/" -Force
 
         New-Item -Type Directory "$wsl_distro_dir/" -Force | Out-Null
-        wsl --import $devbox_wsl_distro_name "$wsl_distro_dir/" "$download_dir/wsl-Ubuntu-16.04/install.tar.gz"
+        wsl --import $devbox_wsl_distro_name "$wsl_distro_dir/" "$download_dir/wsl-Ubuntu-20.04/install.tar.gz"
         wsl --set-version $devbox_wsl_distro_name 1
 
         $wsl_conf_path = "$wsl_distro_dir/rootfs/etc/wsl.conf"
@@ -236,7 +239,11 @@ function install_wsl_docker_sync() {
     # docker dompose is not required inside wsl as well
 
     if (-not (Test-Path "$wsl_distro_dir/rootfs/usr/local/bin/docker")) {
-        $wsl_path_docker = (get_wsl_path ("$Env:ProgramFiles/Docker/Docker/resources/docker.exe"))
+        if (Test-Path "$Env:ProgramFiles/Docker/Docker/resources/docker.exe") {
+            $wsl_path_docker = (get_wsl_path ("$Env:ProgramFiles/Docker/Docker/resources/docker.exe"))
+        } elseif (Test-Path "$Env:ProgramFiles/Docker/Docker/resources/bin/docker.exe") {
+            $wsl_path_docker = (get_wsl_path ("$Env:ProgramFiles/Docker/Docker/resources/bin/docker.exe"))
+        }
         wsl -d ${devbox_wsl_distro_name} ln -nsf "${wsl_path_docker}" /usr/local/bin/docker
 
         # required for internal docker installation
@@ -244,6 +251,7 @@ function install_wsl_docker_sync() {
     }
 
     if (-not (Test-Path "$wsl_distro_dir/rootfs/usr/local/bin/docker-sync")) {
+
         wsl -d ${devbox_wsl_distro_name} gem install docker-sync -v 0.6 | Out-Null
 
         # Replace one of docker-sync source files to avoid sync by starting and speedup project 'hot' start, initial precopy into clean volume still work by default
