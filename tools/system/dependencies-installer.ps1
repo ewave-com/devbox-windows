@@ -306,7 +306,7 @@ function install_cygwin() {
 
         # install cygwin with ruby packages required for docker-sync
         # see https://www.cygwin.com/faq/faq.html#faq.setup.cli
-        Start-Process -Wait -FilePath "${download_dir}/cygwin_setup.exe" -ArgumentList "--quiet-mode --no-admin --wait --root=${cygwin_dir} --packages='openssl,ruby,ruby-devel,rubygems' --site=http://mirrors.kernel.org/sourceware/cygwin/ --local-package-dir=$download_dir/cygwin-installation"
+        Start-Process -Wait -Verb RunAs -FilePath "${download_dir}/cygwin_setup.exe" -ArgumentList "--quiet-mode --wait --root=${cygwin_dir} --packages='openssl,ruby,ruby-devel,rubygems' --site=http://mirrors.kernel.org/sourceware/cygwin/ --local-package-dir=$download_dir/cygwin-installation"
 
         if (-not (Test-Path "${cygwin_dir}\home\$env:UserName\.bash_profile")) {
             New-Item -ItemType Directory -Path "${cygwin_dir}\home\$env:UserName" -Force | Out-Null
@@ -462,6 +462,7 @@ function install_composer() {
                 show_success_message "Running composer update command to refresh packages. Last run was performed a month ago. Please wait a few seconds"
                 cd ${devbox_root}; composer update --quiet; cd $pwd
             }
+            cd $pwd
         } catch {
             # PHP 8.0+ Compatibility fix, the following error or similar might occur during composer command.
             # PHP Fatal error:  Uncaught ArgumentCountError: array_merge() does not accept unknown named parameters in /usr/share/php/Composer/DependencyResolver/DefaultPolicy.php:84
