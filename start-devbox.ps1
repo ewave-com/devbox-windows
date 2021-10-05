@@ -1,5 +1,5 @@
 Set-PSDebug -strict;           # Normal working mode
-#Set-PSDebug -strict -trace 1; # Verbsoe debug mode
+#Set-PSDebug -strict -trace 1; # Verbose debug mode
 
 $ErrorActionPreference = "Stop"
 
@@ -28,6 +28,8 @@ $_no_interaction = $false
 if ($args[1] -eq "-n" -or $args[1] -eq "--no-interaction") {
     $_no_interaction = $true
 }
+
+start_docker_if_not_running
 
 start_devbox_project "${_selected_project}" $_no_interaction
 

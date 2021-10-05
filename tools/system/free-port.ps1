@@ -200,8 +200,11 @@ function find_port_across_docker_containers($_checked_port = "", $_container_nam
         exit 1
     }
 
+    $_containers_port = ''
     if (-not $_container_name) {
-        $_containers_port = (Invoke-Expression "docker inspect --format='{{json .HostConfig.PortBindings}}' ( docker ps -aq )" | ForEach { ($_ | ConvertFrom-Json).PSObject.Properties | ForEach { $_.Value.HostPort } } | Select-String -Pattern "^${_checked_port}$" | ForEach-Object -MemberName Line | Sort -Descending | Select -First 1)
+        if (docker ps -aq) {
+            $_containers_port = (Invoke-Expression "docker inspect --format='{{json .HostConfig.PortBindings}}' ( docker ps -aq)" | ForEach { ($_ | ConvertFrom-Json).PSObject.Properties | ForEach { $_.Value.HostPort } } | Select-String -Pattern "^${_checked_port}$" | ForEach-Object -MemberName Line | Sort -Descending | Select -First 1)
+        }
     } else {
         $_containers_port = (Invoke-Expression "docker inspect --format='{{json .HostConfig.PortBindings}}' ${_container_name}" | ForEach { ($_ | ConvertFrom-Json).PSObject.Properties | ForEach { $_.Value.HostPort } } | Select-String -Pattern "^${_checked_port}$" | ForEach-Object -MemberName Line | Sort -Descending | Select -First 1)
     }

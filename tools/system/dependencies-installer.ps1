@@ -1,6 +1,7 @@
 . require_once "$devbox_root/tools/system/constants.ps1"
 . require_once "$devbox_root/tools/system/output.ps1"
 . require_once "$devbox_root/tools/system/file.ps1"
+. require_once "$devbox_root/tools/docker/docker.ps1"
 . require_once "$devbox_root/tools/system/wsl.ps1"
 . require_once "$devbox_root/tools/devbox/devbox-state.ps1"
 
@@ -124,45 +125,7 @@ function install_docker() {
         Start-Process -Wait -FilePath "$download_dir/Docker_Desktop_Installer.exe" -ArgumentList "install --quiet"
     }
 
-    if (-not (Get-Process 'com.docker.proxy' -ErrorAction Ignore)) {
-        $_docker_started = $false
-        show_warning_message "Docker is installed but not running. Trying to start docker. DevBox continue working after Docker started."
-        if (Test-Path "$Env:ProgramFiles\Docker\Docker\Docker for Windows.exe" -PathType Leaf) {
-            Start-Process -FilePath "$Env:ProgramFiles\Docker\Docker\Docker for Windows.exe"
-            $_docker_started = $true
-        } elseif (Test-Path "$Env:ProgramFiles\Docker\Docker\Docker Desktop.exe" -PathType Leaf) {
-            Start-Process -FilePath "$Env:ProgramFiles\Docker\Docker\Docker Desktop.exe"
-            $_docker_started = $true
-        } else {
-            show_error_message "Unable to find current Docker location to start. Please run Docker manually and try to start devbox again."
-            Exit 1
-        }
-
-        $_docker_running = $false
-        $_attempts = 0
-        While ($_docker_running -ne $true) {
-            $server_output = ''
-            try {
-                $server_output = (docker version --format '{{.Server.Version}}')
-            } catch { }
-
-            if (($server_output | Select-String "docker daemon is not running") -or ! (Get-Process 'com.docker.proxy' -ErrorAction Ignore)) {
-                $_attempts += 1
-                Start-Sleep 1
-            } else {
-                $_docker_running = $true
-            }
-            if ($_attempts -ge 30) {
-                show_error_message "Docker is still not running after 30 seconds. It might be possibly corrupted or just slow. You can start docker manually or increase a timeout"
-                exit 1
-            }
-        }
-    }
-
-    if (-not (Get-Process 'com.docker.proxy' -ErrorAction Ignore)) {
-        show_error_message "Unable to start Docker. Please run docker manually and start devbox again."
-        Exit 1
-    }
+    start_docker_if_not_running
 }
 
 function is_wsl_available() {

@@ -28,6 +28,8 @@ if (-not ${_selected_down_type}) {
     $_selected_down_type = (select_down_type_menu)
 }
 
+start_docker_if_not_running
+
 Switch -exact (${_selected_down_type}) {
     "stop_one" {
         if (-not ${_selected_project}) {
