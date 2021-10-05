@@ -26,6 +26,8 @@ if (-not ${_selected_sync_action}) {
     $_selected_sync_action = (select_sync_action_menu)
 }
 
+start_docker_if_not_running
+
 Switch -exact (${_selected_sync_action}) {
     "start_sync" {
         if (-not ${_selected_project}) {

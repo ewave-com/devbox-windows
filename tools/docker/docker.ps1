@@ -101,4 +101,51 @@ function destroy_all_docker_services() {
     Invoke-Expression 'docker system prune --force'
 }
 
+
+function start_docker_if_not_running() {
+    if (-not (Get-Process 'com.docker.proxy' -ErrorAction Ignore)) {
+        if (Test-Path "$Env:ProgramFiles\Docker\Docker\Docker for Windows.exe" -PathType Leaf) {
+            show_success_message "Starting Docker application" "2"
+            Start-Process -FilePath "$Env:ProgramFiles\Docker\Docker\Docker for Windows.exe"
+        } elseif (Test-Path "$Env:ProgramFiles\Docker\Docker\Docker Desktop.exe" -PathType Leaf) {
+            show_success_message "Starting Docker application" "2"
+            Start-Process -FilePath "$Env:ProgramFiles\Docker\Docker\Docker Desktop.exe"
+        } else {
+            show_error_message "Unable to find current Docker location to start. Please run Docker manually and try to start devbox again."
+            Exit 1
+        }
+    }
+
+    try {
+        Invoke-Expression "docker ps" *> $null -ErrorAction SilentlyContinue
+    } catch { }
+    if ($LASTEXITCODE -ne 0) {
+        show_success_message "Waiting for Docker start completion. Please wait..."
+        $_docker_running = $false
+        $_attempts = 0
+        $_start_timeout_sec=30
+        While ($_docker_running -ne $true) {
+            Write-Host -NoNewline "."
+            try {
+                Invoke-Expression "docker ps" *>$null -ErrorAction SilentlyContinue
+            } catch { }
+            $exit_code = $LASTEXITCODE
+
+            if ($exit_code -ne 0) {
+                $_attempts += 1
+                Start-Sleep 1
+            } else {
+                $_docker_running = $true
+            }
+
+            if ($_attempts -ge 30) {
+                show_error_message "Docker starting process exceeded ${_start_timeout_sec} seconds timeout. Please start docker manually and try again"
+                exit 1
+            }
+        }
+        Write-Host "Done"
+    }
+
+}
+
 ############################ Public functions end ############################

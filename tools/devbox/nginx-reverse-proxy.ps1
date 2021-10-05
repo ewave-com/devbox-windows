@@ -5,7 +5,7 @@
 ############################ Public functions ############################
 
 function nginx_reverse_proxy_restart() {
-    Invoke-Expression "docker restart nginx-reverse-proxy" | Out-Null
+    Invoke-Expression "docker restart nginx-reverse-proxy --time 10" | Out-Null
 }
 
 function nginx_reverse_proxy_add_website($_website_config_path = "", $_crt_file_name = "", $_key_file_name = "") {
@@ -40,11 +40,19 @@ function nginx_reverse_proxy_remove_project_website($_website_host_name = "", $_
 ############################ Local functions ############################
 
 function nginx_reverse_proxy_prepare_common_folders() {
-    New-Item -ItemType Directory -Path "${devbox_infra_dir}/nginx-reverse-proxy/run" -Force | Out-Null
+    if (Test-Path "${devbox_infra_dir}/nginx-reverse-proxy/run" -PathType Container) {
+        New-Item -ItemType Directory -Path "${devbox_infra_dir}/nginx-reverse-proxy/run" -Force | Out-Null
+    }
 
-    New-Item -ItemType Directory -Path "${devbox_infra_dir}/nginx-reverse-proxy/run/conf.d/" -Force | Out-Null
-    New-Item -ItemType Directory -Path "${devbox_infra_dir}/nginx-reverse-proxy/run/logs/" -Force | Out-Null
-    New-Item -ItemType Directory -Path "${devbox_infra_dir}/nginx-reverse-proxy/run/ssl/" -Force | Out-Null
+    if (Test-Path "${devbox_infra_dir}/nginx-reverse-proxy/run/conf.d" -PathType Container) {
+        New-Item -ItemType Directory -Path "${devbox_infra_dir}/nginx-reverse-proxy/run/conf.d/" -Force | Out-Null
+    }
+    if (Test-Path "${devbox_infra_dir}/nginx-reverse-proxy/run/logs" -PathType Container) {
+        New-Item -ItemType Directory -Path "${devbox_infra_dir}/nginx-reverse-proxy/run/logs/" -Force | Out-Null
+    }
+    if (Test-Path "${devbox_infra_dir}/nginx-reverse-proxy/run/ssl/" -PathType Container) {
+        New-Item -ItemType Directory -Path "${devbox_infra_dir}/nginx-reverse-proxy/run/ssl/" -Force | Out-Null
+    }
 }
 
 function nginx_reverse_proxy_add_website_config($_website_config_path = "") {
