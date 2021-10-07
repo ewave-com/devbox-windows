@@ -4,7 +4,14 @@
 ############################ Public functions ############################
 
 function docker_compose_up($_compose_filepath = "", $_env_filepath = "${project_up_dir}/.env", $_log_level = ${docker_compose_log_level}) {
-    show_success_message "Starting containers for docker-compose config '$( Split-Path -Path ${_compose_filepath} -Leaf )'" "3"
+
+    $_compose_version = (get_docker_compose_version)
+
+    if ($_compose_version -eq "1") {
+        show_success_message "Starting containers for docker-compose config '$( Split-Path -Path ${_compose_filepath} -Leaf )'" "3"
+    } else {
+        show_success_message "Starting containers for docker compose config '$( Split-Path -Path ${_compose_filepath} -Leaf )'" "3"
+    }
 
     if (-not (Test-Path ${_compose_filepath} -PathType Leaf)) {
         show_error_message "Unable to start containers. Docker-compose yml file not found at path  '${_compose_filepath}', related .env file: '${_env_filepath}'."
@@ -21,23 +28,30 @@ function docker_compose_up($_compose_filepath = "", $_env_filepath = "${project_
         $_env_file_option = "--env-file ${_env_filepath}"
     }
 
-    $command = "docker-compose --file ${_compose_filepath} ${_env_file_option} --log-level ${docker_compose_log_level} up --detach"
+    if ($_compose_version -eq "1") {
+        $command = "docker-compose --file ${_compose_filepath} ${_env_file_option} --log-level ${docker_compose_log_level} up --detach"
+    } else {
+        $command = "docker --log-level ${docker_compose_log_level} compose --file ${_compose_filepath} ${_env_file_option}  up --detach"
+    }
 
     Invoke-Expression $command
 
     if ($LASTEXITCODE -ne 0) {
         show_error_message "Unable to start containers. See docker-compose output above. Process interrupted."
         show_error_message "Compose file: ${_compose_filepath}, related .env file: ${_env_filepath}."
-        show_warning_message "##############################"
-        show_warning_message "! If you see the message 'Unable to parse log level: compose' please disable the Experimental feature 'Use Docker Compose V2' in the Docker settings UI and try to start DevBox again again."
-        show_warning_message "Otherwise please collect as much info about the error as possible and contact DevBox developers "
-        show_warning_message "##############################"
         exit 1
     }
 }
 
 function docker_compose_stop($_compose_filepath = "", $_env_filepath = "${project_up_dir}/.env", $_log_level = ${docker_compose_log_level}) {
-    show_success_message "Stopping containers for docker-compose config '$( Split-Path -Path ${_compose_filepath} -Leaf )'" "3"
+
+    $_compose_version = (get_docker_compose_version)
+
+    if ($_compose_version -eq "1") {
+        show_success_message "Stopping containers for docker-compose config '$( Split-Path -Path ${_compose_filepath} -Leaf )'" "3"
+    } else {
+        show_success_message "Stopping containers for docker compose config '$( Split-Path -Path ${_compose_filepath} -Leaf )'" "3"
+    }
 
     if (-not (Test-Path ${_compose_filepath} -PathType Leaf)) {
         show_error_message "Unable to stop containers. Docker-compose yml file not found at path  '${_compose_filepath}', related .env file: '${_env_filepath}'."
@@ -54,7 +68,11 @@ function docker_compose_stop($_compose_filepath = "", $_env_filepath = "${projec
         $_env_file_option = "--env-file ${_env_filepath}"
     }
 
-    $command = "docker-compose --file ${_compose_filepath} ${_env_file_option} --log-level ${docker_compose_log_level} stop"
+    if ($_compose_version -eq "1") {
+        $command = "docker-compose --file ${_compose_filepath} ${_env_file_option} --log-level ${docker_compose_log_level} stop"
+    } else {
+        $command = "docker --log-level ${docker_compose_log_level} compose --file ${_compose_filepath} ${_env_file_option} stop"
+    }
 
     Invoke-Expression $command
 
@@ -66,7 +84,14 @@ function docker_compose_stop($_compose_filepath = "", $_env_filepath = "${projec
 }
 
 function docker_compose_down($_compose_filepath = "", $_env_filepath = "${project_up_dir}/.env", $_clean_volumes = $false, $_log_level = ${docker_compose_log_level}) {
-    show_success_message "Downing docker containers for compose config '$( Split-Path -Path ${_compose_filepath} -Leaf )'" "3"
+
+    $_compose_version = (get_docker_compose_version)
+
+    if ($_compose_version -eq "1") {
+        show_success_message "Downing containers for docker-compose config '$( Split-Path -Path ${_compose_filepath} -Leaf )'" "3"
+    } else {
+        show_success_message "Downing containers for docker compose config '$( Split-Path -Path ${_compose_filepath} -Leaf )'" "3"
+    }
 
     if (-not (Test-Path ${_compose_filepath} -PathType Leaf)) {
         show_error_message "Unable to down containers. Docker-compose yml file not found at path '${_compose_filepath}'."
@@ -83,10 +108,18 @@ function docker_compose_down($_compose_filepath = "", $_env_filepath = "${projec
         $_env_file_option = "--env-file ${_env_filepath}"
     }
 
-    if ($_clean_volumes) {
-        $command = "docker-compose --file ${_compose_filepath} ${_env_file_option} --log-level ${docker_compose_log_level} down --volumes --timeout 10"
+    if ($_compose_version -eq "1") {
+        if ($_clean_volumes) {
+            $command = "docker-compose --file ${_compose_filepath} ${_env_file_option} --log-level ${docker_compose_log_level} down --volumes --timeout 10"
+        } else {
+            $command = "docker-compose --file ${_compose_filepath} ${_env_file_option} --log-level ${docker_compose_log_level} down --timeout 10"
+        }
     } else {
-        $command = "docker-compose --file ${_compose_filepath} ${_env_file_option} --log-level ${docker_compose_log_level} down --timeout 10"
+        if ($_clean_volumes) {
+            $command = "docker --log-level ${docker_compose_log_level} compose --file ${_compose_filepath} ${_env_file_option} down --volumes --timeout 10"
+        } else {
+            $command = "docker --log-level ${docker_compose_log_level} compose --file ${_compose_filepath} ${_env_file_option} down --timeout 10"
+        }
     }
 
     Invoke-Expression $command
@@ -151,3 +184,29 @@ function docker_compose_down_and_clean_all_directory_services($_working_director
 }
 
 ############################ Public functions end ############################
+
+
+############################ Local functions ############################
+
+function get_docker_compose_version() {
+    $_compose_version = (devbox_state_get_param_value "docker_compose_version")
+
+    if ($_compose_version) {
+      return "${_compose_version}"
+    }
+
+    if ((docker --help | Select-String "compose")) {
+        devbox_state_set_param_value "docker_compose_version" "2"
+        return "2"
+    }
+
+    if ((docker-compose --version | Select-String -pattern "version\ v?1\.")) {
+        devbox_state_set_param_value "docker_compose_version" "1"
+        return "1"
+    }
+
+    show_error_message "Docker compose version is not recognized. Please contact DevBox developers."
+    exit
+}
+
+############################ Local functions end ############################

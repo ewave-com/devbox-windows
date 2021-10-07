@@ -117,8 +117,8 @@ function install_docker() {
         if (-not (Test-Path "$download_dir/Docker_Desktop_Installer.exe" -PathType Leaf)) {
             $download_dir = (New-Object -ComObject Shell.Application).NameSpace('shell:Downloads').Self.Path
             show_success_message "Downloading new Docker version into $download_dir. Please wait a few minutes"
-            # Install 3.5.2 instead of latest as more stable version
-            (new-object System.Net.WebClient).DownloadFile("https://desktop.docker.com/win/stable/amd64/66501/Docker%20Desktop%20Installer.exe", "${download_dir}/Docker_Desktop_Installer.exe")
+            # Install 3.6.0 instead of latest as more stable version
+            (new-object System.Net.WebClient).DownloadFile("https://desktop.docker.com/win/stable/amd64/67351/Docker%20Desktop%20Installer.exe", "${download_dir}/Docker_Desktop_Installer.exe")
 #            (new-object System.Net.WebClient).DownloadFile("https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe", "${download_dir}/Docker_Desktop_Installer.exe")
         }
 
@@ -351,7 +351,11 @@ PATH="$PATH:/cygdrive/c/Program Files/Docker/Docker/resources/bin"
 # Check and install unison
 function install_cygwin_unison() {
     try {
-        $_is_unison_installed = ((Test-Path "${cygwin_dir}\home\$env:UserName\.bash_profile") -and (Get-Content -Path "${cygwin_dir}\home\$env:UserName\.bash_profile" | Select-String -Pattern 'tools/bin/cygwin'))
+        # build cygwin path, this is faster than calling native command 'cygpath'
+        # "C:\devbox/tools/bin/cygwin" -> "/cygdrive/c/devbox/tools/bin/cygwin"
+        $_unison_bin_dir = "${devbox_root}/tools/bin/cygwin"
+        $_unison_cygwin_bin_dir = "/cygdrive/$($_unison_bin_dir.Substring(0,1).ToLower())/$($_unison_bin_dir.Substring(3).Replace('\', '/'))"
+        $_is_unison_installed = ((Test-Path "${cygwin_dir}\home\$env:UserName\.bash_profile") -and (Get-Content -Path "${cygwin_dir}\home\$env:UserName\.bash_profile" | Select-String -CaseSensitive -Pattern "^PATH=`"${_unison_cygwin_bin_dir}:"))
         # This command is more correct, but running cygwin bash profile takes takes 1-2 seconds on every launch
         # $_is_unison_installed = ((& C:\cygwin64\bin\bash.exe --login -c 'unison -version'))
     } catch {
