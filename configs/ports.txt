@@ -1,5 +1,0 @@
-CONTAINER_WEB_NAME|22|ssh_port_inner|ssh_port_dynamic|SSH Port|
-CONTAINER_WEB_NAME|80|nginx_port_inner|nginx_port_dynamic|Nginx [Website] Port|
-CONTAINER_WEB_NAME|5000|unison_port_inner|unison_port_dynamic|Unison Port|
-CONTAINER_MYSQL_NAME|3306|mysql_port_inner|mysql_port_dynamic|MySQL Port|
-CONTAINER_VARNISH_NAME|80|varnish_port_inner|varnish_port_dynamic|Varnish Port|VARNISH_ENABLE
