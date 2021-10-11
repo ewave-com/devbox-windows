@@ -19,7 +19,7 @@ $attempt_no = 0
 
 $global:hanging_unison_hashes=@()
 $process_name = 'unison%'
-$cpu_percentage_threshold = '97' # cpu percentage per logical core as unison if single-thread process
+$cpu_percentage_threshold = '98' # cpu percentage per logical core as unison if single-thread process
 $max_cycles_before_kill = 3;
 
 function start_watch() {
