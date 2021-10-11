@@ -58,13 +58,14 @@ function install_chocolatey() {
 # Check and install docker if missing
 function install_docker() {
     try {
-        $_is_docker_installed = ((Test-Path "$Env:ProgramFiles\Docker\Docker\resources\docker.exe") -or (docker version))
+        $_is_docker_installed = ((Test-Path "$Env:ProgramFiles\Docker\Docker\resources\docker.exe") -or (Test-Path "$Env:ProgramFiles\Docker\Docker\resources\bin\docker.exe") -or (docker version))
     } catch {
         $_is_docker_installed = $false
     }
 
     try {
         # "docker-compose version" is simplier, but takes ~1 second to just get version, so read version from simple json file is much faster
+        # x86 ?
         if (Test-Path ${Env:ProgramFiles}\Docker\Docker\resources\componentsVersion.json) {
             $_compose_version = (Get-Content ${Env:ProgramFiles}\Docker\Docker\resources\componentsVersion.json | Out-String | ConvertFrom-Json).ComposeVersion
         } elseif(Test-Path "${Env:ProgramFiles}\Docker\Docker\resources\bin\docker-compose.exe") {
@@ -269,11 +270,16 @@ function install_cygwin() {
 
         # install cygwin with ruby packages required for docker-sync
         # see https://www.cygwin.com/faq/faq.html#faq.setup.cli
-        Start-Process -Wait -Verb RunAs -FilePath "${download_dir}/cygwin_setup.exe" -ArgumentList "--quiet-mode --wait --root=${cygwin_dir} --packages='openssl,ruby,ruby-devel,rubygems' --site=http://mirrors.kernel.org/sourceware/cygwin/ --local-package-dir=$download_dir/cygwin-installation"
+        Start-Process -Wait -FilePath "${download_dir}/cygwin_setup.exe" -ArgumentList "--quiet-mode --no-admin --wait --root=${cygwin_dir} --packages='openssl,ruby,ruby-devel,rubygems' --site=http://mirrors.kernel.org/sourceware/cygwin/ --local-package-dir=$download_dir/cygwin-installation"
 
-        if (-not (Test-Path "${cygwin_dir}\home\$env:UserName\.bash_profile")) {
-            New-Item -ItemType Directory -Path "${cygwin_dir}\home\$env:UserName" -Force | Out-Null
-            New-Item -ItemType File -Path "${cygwin_dir}\home\$env:UserName\.bash_profile" -Force | Out-Null
+        # change home dirname to path without space characters
+        Start-Process -Wait -FilePath "${cygwin_dir}\bin\bash.exe" -ArgumentList "-c '/usr/bin/mkpasswd -l >/etc/passwd'"
+        $content = [System.IO.File]::ReadAllText("${cygwin_dir}\etc\passwd").Replace("/home/$env:UserName","/home/$cygwin_home_dirname")
+        [System.IO.File]::WriteAllText("${cygwin_dir}\etc\passwd", $content)
+
+        if (-not (Test-Path "${cygwin_dir}\home\$cygwin_home_dirname\.bash_profile")) {
+            New-Item -ItemType Directory -Path "${cygwin_dir}\home\$cygwin_home_dirname" -Force | Out-Null
+            New-Item -ItemType File -Path "${cygwin_dir}\home\$cygwin_home_dirname\.bash_profile" -Force | Out-Null
         }
     }
 
@@ -285,7 +291,7 @@ function install_cygwin() {
 
 function install_cygwin_docker_sync() {
 
-    if (-not (Test-Path "${cygwin_dir}/home/$env:UserName/bin/docker-sync" -PathType Leaf)) {
+    if (-not (Test-Path "${cygwin_dir}/home/$cygwin_home_dirname/bin/docker-sync" -PathType Leaf)) {
         show_success_message "Installing Docker-sync inside Cygwin environment."
 
         @'
@@ -296,14 +302,14 @@ fi
 PATH="$PATH:/cygdrive/c/ProgramData/DockerDesktop/version-bin"
 PATH="$PATH:/cygdrive/c/Program Files/Docker/Docker/resources/bin"
 # DevBox PATHs for Cygwin END
-'@ | Add-Content "${cygwin_dir}\home\$env:UserName\.bash_profile"
+'@ | Add-Content "${cygwin_dir}\home\$cygwin_home_dirname\.bash_profile"
 
         # replace \r\r with \n for unix file
-        $text = [IO.File]::ReadAllText("${cygwin_dir}/home/$env:UserName/.bash_profile") -replace "`r`n", "`n"
-        [IO.File]::WriteAllText("${cygwin_dir}/home/$env:UserName/.bash_profile", $text)
+        $text = [IO.File]::ReadAllText("${cygwin_dir}/home/$cygwin_home_dirname/.bash_profile") -replace "`r`n", "`n"
+        [IO.File]::WriteAllText("${cygwin_dir}/home/$cygwin_home_dirname/.bash_profile", $text)
 
         # install docker-sync as ruby gem inside cygwin
-        Start-Process -Wait -NoNewWindow -FilePath "${cygwin_dir}\bin\bash.exe" -ArgumentList "--login -c 'gem install docker-sync -v 0.6'"
+        Start-Process -Wait -NoNewWindow -FilePath "${cygwin_dir}\bin\bash.exe" -ArgumentList "--login -c 'gem install docker-sync:0.6 || gem install docker-sync -v 0.6'"
 
         # Replace one of docker-sync source files to avoid sync by starting and speedup project 'hot' start, initial precopy into clean volume still work by default
         $docker_sync_lib_sources_dir = (& "${cygwin_dir}/bin/bash.exe" --login -c 'dirname $(gem which docker-sync)')
@@ -355,7 +361,7 @@ function install_cygwin_unison() {
         # "C:\devbox/tools/bin/cygwin" -> "/cygdrive/c/devbox/tools/bin/cygwin"
         $_unison_bin_dir = "${devbox_root}/tools/bin/cygwin"
         $_unison_cygwin_bin_dir = "/cygdrive/$($_unison_bin_dir.Substring(0,1).ToLower())/$($_unison_bin_dir.Substring(3).Replace('\', '/'))"
-        $_is_unison_installed = ((Test-Path "${cygwin_dir}\home\$env:UserName\.bash_profile") -and (Get-Content -Path "${cygwin_dir}\home\$env:UserName\.bash_profile" | Select-String -CaseSensitive -Pattern "^PATH=`"${_unison_cygwin_bin_dir}:"))
+        $_is_unison_installed = ((Test-Path "${cygwin_dir}\home\$cygwin_home_dirname\.bash_profile") -and (Get-Content -Path "${cygwin_dir}\home\$cygwin_home_dirname\.bash_profile" | Select-String -CaseSensitive -Pattern "^PATH=`"${_unison_cygwin_bin_dir}:"))
         # This command is more correct, but running cygwin bash profile takes takes 1-2 seconds on every launch
         # $_is_unison_installed = ((& C:\cygwin64\bin\bash.exe --login -c 'unison -version'))
     } catch {
@@ -370,11 +376,11 @@ function install_cygwin_unison() {
 
         # add unison to the beginning of PATHs to avoid using native cygwin unison if exist.
         # We need unison with the same ocaml version as inside docker-sync, otherwise unison cannot work
-        ('PATH="' + ${devbox_bin_cygpath} + ':$PATH"') | Add-Content "${cygwin_dir}\home\$env:UserName\.bash_profile"
+        ('PATH="' + ${devbox_bin_cygpath} + ':$PATH"') | Add-Content "${cygwin_dir}\home\$cygwin_home_dirname\.bash_profile"
 
         # replace \r\r with \n for unix file after powershell updating
-        $text = [IO.File]::ReadAllText("${cygwin_dir}\home\$env:UserName\.bash_profile") -replace "`r`n", "`n"
-        [IO.File]::WriteAllText("${cygwin_dir}\home\$env:UserName\.bash_profile", $text)
+        $text = [IO.File]::ReadAllText("${cygwin_dir}\home\$cygwin_home_dirname\.bash_profile") -replace "`r`n", "`n"
+        [IO.File]::WriteAllText("${cygwin_dir}\home\$cygwin_home_dirname\.bash_profile", $text)
     }
 }
 

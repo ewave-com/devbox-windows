@@ -26,6 +26,7 @@ $docker_images_autoupdate_skip_images=""
 $preferred_sync_env = "cygwin"
 
 $cygwin_dir = "$( (Get-WmiObject Win32_OperatingSystem).SystemDrive )/cygwin64"
+$cygwin_home_dirname = ("$env:UserName" -Replace '\s', '_')
 
 $devbox_wsl_distro_name = "devbox-distro"
 $wsl_distro_dir = "$env:ALLUSERSPROFILE/wsl/${devbox_wsl_distro_name}"
