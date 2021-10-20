@@ -67,7 +67,7 @@ function ssl_generate_root_certificate_authority($_target_root_crt_path, $_targe
           "-newkey rsa:2048 " +
           "-keyout /tmp/DevboxRootCA/${_cert_basename}.key " +
           "-out /tmp/DevboxRootCA/${_cert_basename}.pem " +
-          "-subj /C=BY/ST=Minsk/L=Minsk/O=EwaveDevOpsTeam_Devbox/ " +
+          "-subj /C=BY/ST=Minsk/L=Minsk/O=EwaveDevOpsTeam_Devbox/CN=DevboxRootCA/" +
           ">/dev/null 2>&1 && " +
           "openssl x509 -outform pem -in /tmp/DevboxRootCA/${_cert_basename}.pem -out /tmp/DevboxRootCA/${_cert_basename}.crt " +
           ">/dev/null 2>&1"

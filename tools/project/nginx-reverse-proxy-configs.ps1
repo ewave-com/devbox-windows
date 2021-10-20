@@ -76,7 +76,7 @@ function prepare_website_ssl_certificate() {
         if ((-not (Test-Path "${_ssl_dir}/DevboxRootCA.crt" -PathType Leaf)) -or (-not (Test-Path "${_ssl_dir}/DevboxRootCA.pem" -PathType Leaf)) -or (-not (Test-Path "${_ssl_dir}/DevboxRootCA.key" -PathType Leaf)))
         {
             ssl_generate_root_certificate_authority "${_ssl_dir}/DevboxRootCA.crt"
-            ssl_add_system_certificate "${_ssl_dir}/DevboxRootCA.crt" "O=EwaveDevOpsTeam_Devbox*" $true
+            ssl_add_system_certificate "${_ssl_dir}/DevboxRootCA.crt" "CN=DevboxRootCA*" $true
 
             show_success_message "Devbox Root CA has been generated and imported to your system."
             show_warning_message "If you still see the warning about insecure connection in your browser please import the certificate authority to your browser. "
