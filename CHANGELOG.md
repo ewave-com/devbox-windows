@@ -1,6 +1,13 @@
 # Windows DevBox
 http://devbox.ewave.com/
 
+## Release 3.0.2
+- Fixed repeated import of website SSL certificate which resulted in asking for admin privileges by every project starting/stopping with enabled HTTPS
+
+## Release 3.0.1
+- Fixed redundant admin privileges issue by Cygwin installation
+- Implemented cygwin HOME without spaces if system username has spaces to avoid cygwin(linux) paths splitting
+
 ## Release 3.0.0
 
 ### Main changes:
@@ -42,6 +49,8 @@ http://devbox.ewave.com/
   - Added monthly autopull of docker images with 'latest' tag (it mean exact version is not specified)
   - Added possibility to disable node_modules sync and new composer cache sync using empty parameters value
   - Evaluating of dynamic free port for Mysql, Elasticsearch and SSH connection now searches for possible port including docker containers including stopped to keep already allocated port is possible
+  - Added supporting of Docker compose V2
+  - [MacOs] Added supporting M1 chips with ARM64 docker images
 
 Web container main changes:
 - Default folder is changed to application dir on www-data login

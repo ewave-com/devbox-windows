@@ -38,7 +38,7 @@ function prepare_project_nginx_reverse_proxy_configs() {
     if (${WEBSITE_PROTOCOL} -eq 'https') {
         # find or generate certificate in ${project_up_dir}/configs/ssl
         prepare_website_ssl_certificate
-        ssl_import_new_system_certificate "${project_up_dir}/configs/ssl/${WEBSITE_SSL_CERT_FILENAME}.crt"
+        ssl_add_system_certificate "${project_up_dir}/configs/ssl/${WEBSITE_SSL_CERT_FILENAME}.crt" "CN=${WEBSITE_HOST_NAME}*"
 
         nginx_reverse_proxy_add_website "${_nginx_proxy_config_filepath}" "${project_up_dir}/configs/ssl/${WEBSITE_SSL_CERT_FILENAME}.crt"
     }
@@ -54,7 +54,7 @@ function cleanup_project_nginx_reverse_proxy_configs($_full_clean = $false) {
         if ($_full_clean) {
             nginx_reverse_proxy_remove_project_website "${WEBSITE_HOST_NAME}" "${WEBSITE_SSL_CERT_FILENAME}.crt"
 
-            ssl_disable_system_certificate "${WEBSITE_SSL_CERT_FILENAME}.crt"
+            ssl_delete_system_certificate "${WEBSITE_SSL_CERT_FILENAME}.crt" "CN=${WEBSITE_HOST_NAME}*"
         } else {
             nginx_reverse_proxy_remove_project_website "${WEBSITE_HOST_NAME}"
         }
@@ -76,7 +76,7 @@ function prepare_website_ssl_certificate() {
         if ((-not (Test-Path "${_ssl_dir}/DevboxRootCA.crt" -PathType Leaf)) -or (-not (Test-Path "${_ssl_dir}/DevboxRootCA.pem" -PathType Leaf)) -or (-not (Test-Path "${_ssl_dir}/DevboxRootCA.key" -PathType Leaf)))
         {
             ssl_generate_root_certificate_authority "${_ssl_dir}/DevboxRootCA.crt"
-            ssl_import_new_system_certificate "${_ssl_dir}/DevboxRootCA.crt"
+            ssl_add_system_certificate "${_ssl_dir}/DevboxRootCA.crt" "CN=DevboxRootCA*" $true
 
             show_success_message "Devbox Root CA has been generated and imported to your system."
             show_warning_message "If you still see the warning about insecure connection in your browser please import the certificate authority to your browser. "

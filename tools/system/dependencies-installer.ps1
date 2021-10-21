@@ -294,6 +294,10 @@ function install_cygwin_docker_sync() {
     if (-not (Test-Path "${cygwin_dir}/home/$cygwin_home_dirname/bin/docker-sync" -PathType Leaf)) {
         show_success_message "Installing Docker-sync inside Cygwin environment."
 
+        if (-not (Test-Path "${cygwin_dir}\home\$cygwin_home_dirname\.bash_profile")) {
+            New-Item -ItemType File -Path "${cygwin_dir}\home\$cygwin_home_dirname\.bash_profile" -Force | Out-Null
+        }
+
         @'
 # DevBox PATHs for Cygwin
 if [ -d "${HOME}/bin" ] ; then
@@ -406,7 +410,7 @@ function install_git() {
 function install_composer() {
     try {
         # Composer version with no-plugins is faster to ensure composer is presented in general
-        $_composer_version = ((composer --no-plugins --version) | Select-String -Pattern "^Composer version ([0-9.]+) " | ForEach-Object -MemberName Matches | ForEach-Object { $_.Groups[1].Value } )
+        $_composer_version = ((composer --no-plugins --version --no-ansi) | Select-String -Pattern "Composer version ([0-9.]+)" | ForEach-Object -MemberName Matches | ForEach-Object { $_.Groups[1].Value } )
     } catch {
         $_composer_version = $false
     }
