@@ -31,10 +31,15 @@ function docker_compose_up($_compose_filepath = "", $_env_filepath = "${project_
     if ($_compose_version -eq "1") {
         $command = "docker-compose --file ${_compose_filepath} ${_env_file_option} --log-level ${docker_compose_log_level} up --detach"
     } else {
-        $command = "docker --log-level ${docker_compose_log_level} compose --file ${_compose_filepath} ${_env_file_option}  up --detach"
+        # --log-level option removed as Docker break this option again and again within different releases
+        $command = "docker compose --file ${_compose_filepath} ${_env_file_option} up --detach"
     }
 
+    $env:COMPOSE_IGNORE_ORPHANS = 'true'
+
     Invoke-Expression $command
+
+    $env:COMPOSE_IGNORE_ORPHANS = $null
 
     if ($LASTEXITCODE -ne 0) {
         show_error_message "Unable to start containers. See docker-compose output above. Process interrupted."
@@ -71,10 +76,15 @@ function docker_compose_stop($_compose_filepath = "", $_env_filepath = "${projec
     if ($_compose_version -eq "1") {
         $command = "docker-compose --file ${_compose_filepath} ${_env_file_option} --log-level ${docker_compose_log_level} stop"
     } else {
-        $command = "docker --log-level ${docker_compose_log_level} compose --file ${_compose_filepath} ${_env_file_option} stop"
+        # --log-level option removed as Docker break this option again and again within different releases
+        $command = "docker compose --file ${_compose_filepath} ${_env_file_option} stop"
     }
 
+    $env:COMPOSE_IGNORE_ORPHANS = 'true'
+
     Invoke-Expression $command
+
+    $env:COMPOSE_IGNORE_ORPHANS = $null
 
     if ($LASTEXITCODE -ne 0) {
         show_error_message "Unable to stop containers. See docker-compose output above. Process interrupted."
@@ -116,13 +126,18 @@ function docker_compose_down($_compose_filepath = "", $_env_filepath = "${projec
         }
     } else {
         if ($_clean_volumes) {
-            $command = "docker --log-level ${docker_compose_log_level} compose --file ${_compose_filepath} ${_env_file_option} down --volumes --timeout 10"
+            $command = "docker compose --file ${_compose_filepath} ${_env_file_option} down --volumes --timeout 10"
         } else {
-            $command = "docker --log-level ${docker_compose_log_level} compose --file ${_compose_filepath} ${_env_file_option} down --timeout 10"
+            # --log-level option removed as Docker break this option again and again within different releases
+            $command = "docker compose --file ${_compose_filepath} ${_env_file_option} down --timeout 10"
         }
     }
 
+    $env:COMPOSE_IGNORE_ORPHANS = 'true'
+
     Invoke-Expression $command
+
+    $env:COMPOSE_IGNORE_ORPHANS = $null
 
     if ($LASTEXITCODE -ne 0) {
         show_error_message "Unable to down containers. See docker-compose output above. Process interrupted.$LASTEXITCODE"

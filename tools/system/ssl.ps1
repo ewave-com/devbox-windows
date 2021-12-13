@@ -17,11 +17,15 @@ function ssl_add_system_certificate($_cert_source_path = '', $_subject_search_pa
     if ($is_root_ca) {
         $_store_name = 'ROOT'
     } else {
-        $_store_name = 'DevBox'
+        $_store_name = 'My'
     }
 
-    $_thumbprints = (Get-ChildItem -path "cert:CurrentUser\${_store_name}" -Recurse | where { $_.Subject -like "${_subject_search_pattern}" } | Select Thumbprint)
-    if (!$_thumbprints) {
+    if (Test-Path "cert:CurrentUser\${_store_name}" -PathType Any) {
+        $_thumbprints = (Get-ChildItem -path "cert:CurrentUser\${_store_name}" -Recurse | where { $_.Subject -like "${_subject_search_pattern}" } | Select Thumbprint)
+        if (!$_thumbprints) {
+            certutil -addstore -user -f "${_store_name}" $_cert_source_path | Out-Null
+        }
+    } else {
         certutil -addstore -user -f "${_store_name}" $_cert_source_path | Out-Null
     }
 }
