@@ -1,6 +1,10 @@
 # Windows DevBox
 http://devbox.ewave.com/
 
+## Release 3.0.3
+- Added compatibility with Docker 4.2 and 4.3. As a result log-level option has been removed from 'docker compose' V2 commands due to docker parsing issue.
+- Fixed error by first creation of SSL certificate storage with enabled HTTPS
+
 ## Release 3.0.2
 - Fixed repeated import of website SSL certificate which resulted in asking for admin privileges by every project starting/stopping with enabled HTTPS
 
