@@ -39,10 +39,10 @@ function ssl_delete_system_certificate($_cert_source_path = '', $_subject_search
     if ($is_root_ca) {
         $_store_name = 'ROOT'
     } else {
-        $_store_name = 'DevBox'
+        $_store_name = 'My'
     }
 
-    if ($_subject_search_pattern) {
+    if ($_subject_search_pattern -and (Test-Path "cert:CurrentUser\${_store_name}" -PathType Any)) {
         $_thumbprints = (Get-ChildItem -path "cert:CurrentUser\${_store_name}" -Recurse | where { $_.Subject -like "${_subject_search_pattern}" } | Select Thumbprint)
         if ($_thumbprints) {
             $_thumbprints | ForEach-Object { certutil -delstore -user -Silent "${_store_name}" $_.Thumbprint | Out-Null }
