@@ -312,9 +312,9 @@ function add_internal_generated_prams($_env_filepath = "${project_up_dir}/.env")
 
     if(-not (dotenv_get_param_value 'DOCKER_SYNC_UNISON_IMAGE')) {
         if ($arch_type -eq 'arm64') {
-            dotenv_set_param_value 'DOCKER_SYNC_UNISON_IMAGE' "eugenmayer/unison:2.51.3-4.12.0-ARM64"
+            dotenv_set_param_value 'DOCKER_SYNC_UNISON_IMAGE' "madebyewave/unison:2.51.3-4.12.0"
         } else {
-            dotenv_set_param_value 'DOCKER_SYNC_UNISON_IMAGE' "eugenmayer/unison:2.51.3-4.12.0-AMD64"
+            dotenv_set_param_value 'DOCKER_SYNC_UNISON_IMAGE' "madebyewave/unison:2.51.3-4.12.0"
         }
     }
 }

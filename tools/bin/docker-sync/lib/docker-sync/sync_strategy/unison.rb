@@ -22,7 +22,7 @@ module DockerSync
         @docker_image = if @options.key?('image')
                           @options['image']
                         else
-                          'eugenmayer/unison:2.51.3-4.12.0-AMD64'
+                          'madebyewave/unison:2.51.3-4.12.0'
                         end
         if !ENV['DOCKER_SYNC_SKIP_DEPENDENCIES_CHECK']
           begin
