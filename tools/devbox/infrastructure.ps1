@@ -72,9 +72,9 @@ function stop_infrastructure($_dotenv_filepath = "${dotenv_infra_filepath}") {
         docker_compose_down "${devbox_infra_dir}/docker-compose-nginx-reverse-proxy.yml" "${_dotenv_filepath}"
     }
 
-    if (is_docker_container_running 'portainer') {
-        docker_compose_down "${devbox_infra_dir}/docker-compose-portainer.yml" "${_dotenv_filepath}"
-    }
+    # if (is_docker_container_running 'portainer') {
+    #     docker_compose_down "${devbox_infra_dir}/docker-compose-portainer.yml" "${_dotenv_filepath}"
+    # }
 }
 
 # Down infrastructure docker services
