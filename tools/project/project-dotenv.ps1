@@ -143,6 +143,16 @@ function ensure_exposed_container_ports_are_available($_env_filepath = "${projec
         }
     }
 
+    # ensure rabbitmq external port is available to be exposed or compute a free one
+    $_rabbitmq_enable = $( dotenv_get_param_value 'RABBITMQ_ENABLE' )
+    if ("${_rabbitmq_enable}" -eq "yes") {
+        $_configured_rabbitmq_port = (dotenv_get_param_value 'CONTAINER_RABBITMQ_PORT')
+        if ($_configured_rabbitmq_port) {
+            $_rabbitmq_container_name = "${_project_name}_$(dotenv_get_param_value 'CONTAINER_RABBITMQ_NAME')"
+            ensure_rabbitmq_port_is_available ${_configured_rabbitmq_port} ${_rabbitmq_container_name}
+        }
+    }
+
     $_configured_ssh_port = (dotenv_get_param_value 'CONTAINER_WEB_SSH_PORT')
     if ($_configured_ssh_port) {
         $_web_container_name = "${_project_name}_$(dotenv_get_param_value 'CONTAINER_WEB_NAME')"
@@ -197,6 +207,28 @@ function add_computed_params($_env_filepath = "${project_up_dir}/.env") {
             }
 
             dotenv_set_param_value 'CONTAINER_ELASTICSEARCH_PORT' ${_computed_es_port}
+        }
+    }
+
+    # ensure rabbitmq external port is available to be exposed or compute a free one
+    $_rabbitmq_enable = $( dotenv_get_param_value 'RABBITMQ_ENABLE' )
+    if ("${_rabbitmq_enable}" -eq "yes") {
+        $_rabbitmq_container_name="${_project_name}_$(dotenv_get_param_value 'CONTAINER_RABBITMQ_NAME')"
+        $_configured_rabbitmq_port = (dotenv_get_param_value 'CONTAINER_RABBITMQ_PORT')
+        if ($_configured_rabbitmq_port) {
+            ensure_rabbitmq_port_is_available ${_configured_rabbitmq_port} ${_rabbitmq_container_name}
+        } else {
+            $_rabbitmq_container_state = (get_docker_container_state "${_rabbitmq_container_name}")
+            if ($_rabbitmq_container_state) {
+                $_computed_rabbitmq_port = (get_rabbitmq_port_from_existing_container "${_rabbitmq_container_name}")
+                if (-not ($_rabbitmq_container_state -eq "running")) {
+                    ensure_rabbitmq_port_is_available ${_computed_rabbitmq_port} ${_rabbitmq_container_name}
+                }
+            } else {
+                $_computed_rabbitmq_port = (get_available_rabbitmq_port)
+            }
+
+            dotenv_set_param_value 'CONTAINER_RABBITMQ_PORT' ${_computed_rabbitmq_port}
         }
     }
 

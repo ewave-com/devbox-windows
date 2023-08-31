@@ -105,6 +105,58 @@ function ensure_elasticsearch_port_is_available($_checked_port = "", $_container
     }
 }
 
+
+# Function which find free port for rabbitmq service
+function get_available_rabbitmq_port() {
+    $_containers_port = $(find_port_across_docker_containers "56[0-9]{2}")
+    $_netstat_port = $(find_port_by_regex "56[0-9]{2}")
+
+    if (-not $_containers_port -and -not $_netstat_port) {
+        $_result_port = 5672
+    } else {
+        # find highest port across docker containers ports and netstat ports by mask and allocate the next one
+        $_result_port = ([int]((Get-Variable -name _containers_port,_netstat_port | Sort -Descending Value | Select -First 1).Value) + 1)
+    }
+
+    return $_result_port
+}
+
+function get_rabbitmq_port_from_existing_container($_container_name = "") {
+    if (-not $_container_name) {
+        show_error_message "Unable to check rabbitmq port from existing container. Container name cannot be empty"
+        exit 1
+    }
+
+    $_container_port = (find_port_across_docker_containers "56[0-9]{2}" ${_container_name})
+
+    return $_container_port
+}
+
+# Function which checks if rabbitmq port is available to be exposed
+function ensure_rabbitmq_port_is_available($_checked_port = "", $_container_name = $null) {
+    if (-not $_checked_port) {
+        show_error_message "Unable to check rabbitmq port. Port number argument cannot be empty"
+        exit 1
+    }
+
+    # Check the given mysql port is free
+    $_used_port = (find_port_by_regex $_checked_port)
+    if ($_checked_port -eq $_used_port) {
+        $_process_info=(get_process_info_by_allocated_port ${_checked_port})
+        #  if container name given then skip error if the checked allocated port belongs to the same container
+        if ((-not $_container_name) -or (-not($_process_info | Select-String -Pattern ${_container_name}))) {
+            show_error_message "RabbitMQ port ${_checked_port} is already allocated by process ${_process_info}"
+            show_error_message "Please free the port, set port CONTAINER_RABBITMQ_PORT to another value or set it empty for autocompleting in '${project_dir}/.env' file"
+            exit 1
+        }
+    }
+
+    if (($_checked_port -lt 5600) -or $_checked_port -gt 5699) {
+        show_error_message "RabbitMQ port must be configured in range 5600-5699. Value '${_checked_port}' given. Please update value in your '${project_dir}/.env' file."
+        exit 1
+    }
+}
+
 # Function which find free ssh port for website
 function get_available_website_ssh_port() {
     $_containers_port = $(find_port_across_docker_containers "23[0-9]{2}")
@@ -156,7 +208,7 @@ function ensure_website_ssh_port_is_available($_checked_port = "", $_container_n
     }
 }
 
-# Function which find free port for elasticsearch service
+# Function which find free port for service
 function ensure_port_is_available($_checked_port = "") {
     if (-not $_checked_port) {
         show_error_message "Unable to check port availability. Port number argument cannot be empty"
