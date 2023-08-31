@@ -143,6 +143,16 @@ function ensure_exposed_container_ports_are_available($_env_filepath = "${projec
         }
     }
 
+    # ensure opensearch external port is available to be exposed or compute a free one
+    $_opensearch_enable = $( dotenv_get_param_value 'OPENSEARCH_ENABLE' )
+    if ("${_opensearch_enable}" -eq "yes") {
+        $_configured_opensearch_port = (dotenv_get_param_value 'CONTAINER_OPENSEARCH_PORT')
+        if ($_configured_opensearch_port) {
+            $_opensearch_container_name = "${_project_name}_$(dotenv_get_param_value 'CONTAINER_OPENSEARCH_NAME')"
+            ensure_opensearch_port_is_available ${_configured_opensearch_port} ${_opensearch_container_name}
+        }
+    }
+
     # ensure rabbitmq external port is available to be exposed or compute a free one
     $_rabbitmq_enable = $( dotenv_get_param_value 'RABBITMQ_ENABLE' )
     if ("${_rabbitmq_enable}" -eq "yes") {
@@ -207,6 +217,28 @@ function add_computed_params($_env_filepath = "${project_up_dir}/.env") {
             }
 
             dotenv_set_param_value 'CONTAINER_ELASTICSEARCH_PORT' ${_computed_es_port}
+        }
+    }
+
+    # ensure opensearch external port is available to be exposed or compute a free one
+    $_opensearch_enable = $( dotenv_get_param_value 'OPENSEARCH_ENABLE' )
+    if ("${_opensearch_enable}" -eq "yes") {
+        $_opensearch_container_name="${_project_name}_$(dotenv_get_param_value 'CONTAINER_OPENSEARCH_NAME')"
+        $_configured_opensearch_port = (dotenv_get_param_value 'CONTAINER_OPENSEARCH_PORT')
+        if ($_configured_opensearch_port) {
+            ensure_opensearch_port_is_available ${_configured_opensearch_port} ${_opensearch_container_name}
+        } else {
+            $_opensearch_container_state = (get_docker_container_state "${_opensearch_container_name}")
+            if ($_opensearch_container_state) {
+                $_computed_opensearch_port = (get_opensearch_port_from_existing_container "${_opensearch_container_name}")
+                if (-not ($_opensearch_container_state -eq "running")) {
+                    ensure_opensearch_port_is_available ${_computed_opensearch_port} ${_opensearch_container_name}
+                }
+            } else {
+                $_computed_opensearch_port = (get_available_opensearch_port)
+            }
+
+            dotenv_set_param_value 'CONTAINER_OPENSEARCH_PORT' ${_computed_opensearch_port}
         }
     }
 
@@ -277,6 +309,17 @@ function add_computed_params($_env_filepath = "${project_up_dir}/.env") {
     #forced unison for wsl, until hybrid mode is implemented
     if ($preferred_sync_env -eq "wsl") {
         dotenv_set_param_value 'CONFIGS_PROVIDER_ELASTICSEARCH_DOCKER_SYNC' "unison"
+    }
+
+    # set OS opensearch docker-sync type if 'default' chosen
+    $_opensearch_docker_sync_provider = (dotenv_get_param_value 'CONFIGS_PROVIDER_OPENSEARCH_DOCKER_SYNC')
+    if (${_opensearch_docker_sync_provider} -eq "default") {
+        $_opensearch_docker_sync_provider = "native"
+        dotenv_set_param_value 'CONFIGS_PROVIDER_OPENSEARCH_DOCKER_SYNC' "${_opensearch_docker_sync_provider}"
+    }
+    #forced unison for wsl, until hybrid mode is implemented
+    if ($preferred_sync_env -eq "wsl") {
+        dotenv_set_param_value 'CONFIGS_PROVIDER_OPENSEARCH_DOCKER_SYNC' "unison"
     }
 }
 
