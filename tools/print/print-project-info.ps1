@@ -39,6 +39,14 @@ function print_info() {
         show_info_value_message "ElasticSearch Host" "${PROJECT_NAME}_${CONTAINER_ELASTICSEARCH_NAME}"
         show_info_value_message "ElasticSearch Port" "${CONTAINER_ELASTICSEARCH_PORT}"
     }
+    
+    if (${OPENSEARCH_ENABLE} -eq "yes") {
+        show_message ""
+        show_message "[ OPENSEARCH ]"
+        show_message ""
+        show_info_value_message "OpenSearch Host" "${PROJECT_NAME}_${CONTAINER_OPENSEARCH_NAME}"
+        show_info_value_message "OpenSearch Port" "${CONTAINER_OPENSEARCH_PORT}"
+    }
 
     if (${MONGODB_ENABLE} -eq "yes") {
         show_message ""
@@ -59,6 +67,8 @@ function print_info() {
         show_message "[ RABBITMQ ]"
         show_message ""
         show_info_value_message "RabbitMQ Host" "${PROJECT_NAME}_${CONTAINER_RABBITMQ_NAME}"
+        show_info_value_message "RabbitMQ Port" "${CONTAINER_RABBITMQ_PORT}"
+        show_info_value_message "RabbitMQ URL" "http://${MACHINE_IP_ADDRESS}:1${CONTAINER_RABBITMQ_PORT}/"
     }
 
     show_message ""

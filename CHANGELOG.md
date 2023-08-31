@@ -1,6 +1,9 @@
 # Windows DevBox
 http://devbox.ewave.com/
 
+## Release 3.1.0
+- Removed Portainer container stop when running the "Stop ALL projects" command
+
 ## Release 3.0.3
 - Added compatibility with Docker 4.2 and 4.3. As a result log-level option has been removed from 'docker compose' V2 commands due to docker parsing issue.
 - Fixed error by first creation of SSL certificate storage with enabled HTTPS
