@@ -279,6 +279,10 @@ function create_base_project_dirs() {
         New-Item -ItemType Directory -Path "${project_dir}/sysdumps/elasticsearch/data" -Force | Out-Null
     }
 
+    if (${OPENSEARCH_ENABLE} -eq "yes" -and -not (Test-Path "${project_dir}/sysdumps/opensearch/data" -PathType Container)) {
+        New-Item -ItemType Directory -Path "${project_dir}/sysdumps/opensearch/data" -Force | Out-Null
+    }
+
     # backward compatibility ont-time moves, will be removed later
     # "db/", "es/", "node_modules/" directories were moved into project "sysdumps/" dir
     if ((Test-Path "${project_dir}/db/" -PathType Container) -and (-not (Test-Path "${project_dir}/sysdumps/mysql/" -PathType Container) -or ! (Test-Path "${project_dir}/sysdumps/mysql/*"))) {

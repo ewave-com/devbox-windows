@@ -105,6 +105,57 @@ function ensure_elasticsearch_port_is_available($_checked_port = "", $_container
     }
 }
 
+# Function which find free port for opensearch service
+function get_available_opensearch_port() {
+    $_containers_port = $(find_port_across_docker_containers "92[0-9]{2}")
+    $_netstat_port = $(find_port_by_regex "92[0-9]{2}")
+
+    if (-not $_containers_port -and -not $_netstat_port) {
+        $_result_port = 9200
+    } else {
+        # find highest port across docker containers ports and netstat ports by mask and allocate the next one
+        $_result_port = ([int]((Get-Variable -name _containers_port,_netstat_port | Sort -Descending Value | Select -First 1).Value) + 1)
+    }
+
+    return $_result_port
+}
+
+function get_opensearch_port_from_existing_container($_container_name = "") {
+    if (-not $_container_name) {
+        show_error_message "Unable to check opensearch port from existing container. Container name cannot be empty"
+        exit 1
+    }
+
+    $_container_port = (find_port_across_docker_containers "92[0-9]{2}" ${_container_name})
+
+    return $_container_port
+}
+
+# Function which checks if opensearch port is available to be exposed
+function ensure_opensearch_port_is_available($_checked_port = "", $_container_name = $null) {
+    if (-not $_checked_port) {
+        show_error_message "Unable to check opensearch port. Port number argument cannot be empty"
+        exit 1
+    }
+
+    # Check the given opensearch port is free
+    $_used_port = (find_port_by_regex $_checked_port)
+    if ($_checked_port -eq $_used_port) {
+        $_process_info=(get_process_info_by_allocated_port ${_checked_port})
+        #  if container name given then skip error if the checked allocated port belongs to the same container
+        if ((-not $_container_name) -or (-not($_process_info | Select-String -Pattern ${_container_name}))) {
+            show_error_message "OpenSearch port ${_checked_port} is already allocated by process ${_process_info}"
+            show_error_message "Please free the port, set port CONTAINER_OPENSEARCH_PORT to another value or set it empty for autocompleting in '${project_dir}/.env' file"
+            exit 1
+        }
+    }
+
+    if (($_checked_port -lt 9200) -or $_checked_port -gt 9399) {
+        show_error_message "OpenSearch port must be configured in range 9200-9399. Value '${_checked_port}' given. Please update value in your '${project_dir}/.env' file."
+        exit 1
+    }
+}
+
 # Function which find free ssh port for website
 function get_available_website_ssh_port() {
     $_containers_port = $(find_port_across_docker_containers "23[0-9]{2}")
